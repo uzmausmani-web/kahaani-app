@@ -10,6 +10,10 @@ declare global {
 interface Message {
   sender: 'You' | 'AI';
   text: string;
+  hinglishHelp?: {
+    hinglish: string;
+    devanagari: string;
+  };
 }
 
 export default function App() {
@@ -27,22 +31,21 @@ export default function App() {
   const recognitionRef = useRef<any>(null);
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
 
-  // NEW: Bulletproofed instructions so the Lite model never forgets the Devanagari script
   const scenarios: Record<string, { title: string, greeting: string, prompt: string }> = {
     Grandparents: {
       title: 'Dada/Dadi 👵🏽👴🏽',
       greeting: 'बेटा, आज का दिन कैसा था? | Beta, aaj ka din kaisa tha? | (How was your day today?)',
-      prompt: 'You are a loving Indian grandparent talking to your American teen grandchild. Keep responses to 1-2 friendly sentences. CRITICAL INSTRUCTION: You must strictly format your response in three parts separated by the | symbol. Format: [Devanagari script] | [Hinglish script] | (English translation). Example: अच्छा बच्चा! | Achcha bachcha! | (Good child!)'
+      prompt: 'You are a loving Indian grandparent talking to your American teen grandchild. Keep replies to 1-2 friendly, warm sentences.'
     },
     Cousin: {
       title: 'Cousin in Delhi 📱',
       greeting: 'और बता, क्या चल रहा है आज कल? | Aur bata, kya chal raha hai aaj kal? | (Tell me, what is up these days?)',
-      prompt: 'You are a cool, 20-something cousin living in Delhi chatting on WhatsApp with your American cousin. Use modern slang. Keep it casual, 1-2 sentences. CRITICAL INSTRUCTION: You must strictly format your response in three parts separated by the | symbol. Format: [Devanagari script] | [Hinglish script] | (English translation). Example: क्या बात है यार! | Kya baat hai yaar! | (What is up man!)'
+      prompt: 'You are a cool, 20-something cousin living in Delhi chatting on WhatsApp with your American cousin. Keep it casual and conversational, 1-2 sentences.'
     },
     Shopkeeper: {
       title: 'Street Vendor 🛒',
       greeting: 'आइए आइए! बोलिए क्या चाहिए आपको? | Aaiye aaiye! Boliye kya chahiye aapko? | (Come in! Tell me, what do you need?)',
-      prompt: 'You are a busy but polite street vendor or shopkeeper in North India. Speak to the customer. Keep it to 1-2 sentences. CRITICAL INSTRUCTION: You must strictly format your response in three parts separated by the | symbol. Format: [Devanagari script] | [Hinglish script] | (English translation). Example: हाँ जी, बिल्कुल मिलेगा। | Haan ji, bilkul milega. | (Yes, it will definitely be available.)'
+      prompt: 'You are a busy but polite street vendor or shopkeeper in North India chatting with a young customer. Keep it to 1-2 sentences.'
     }
   };
 
@@ -117,11 +120,11 @@ export default function App() {
     return text;
   };
 
-  const speakText = (text: string) => {
+  const speakText = (devanagariText: string) => {
     window.speechSynthesis.cancel(); 
     
-    const parts = text.split('|');
-    let hindiPart = parts.length > 1 ? parts[0].trim() : text.replace(/\(.*\)/g, '').trim();
+    const parts = devanagariText.split('|');
+    let hindiPart = parts.length > 1 ? parts[0].trim() : devanagariText.replace(/\(.*\)/g, '').trim();
     
     hindiPart = hindiPart.replace(/,/g, '... ').replace(/\?/g, ' ?');
     
@@ -154,15 +157,35 @@ export default function App() {
 
   const generateAIResponse = async (userText: string) => {
     setIsLoading(true);
-    const systemPrompt = scenarios[scenario].prompt;
+    const personaPrompt = scenarios[scenario].prompt;
     
+    const structuredPrompt = `
+You are the brain of "Kahaani", a Hinglish language coaching app for an Indian-American teen.
+The user just sent this message: "${userText}"
+
+Role: ${personaPrompt}
+
+Perform two tasks:
+1. USER TRANSLATION: Translate what the user wrote into everyday conversational North Indian Hinglish (Latin alphabet) and Devanagari script. If the user already wrote in Hindi/Hinglish, refine it into natural conversational Hinglish.
+2. PERSONA REPLY: Respond in character.
+
+CRITICAL: Return ONLY valid JSON in this exact structure with no Markdown wrapping:
+{
+  "userHinglish": "Everyday Hinglish version of user input",
+  "userDevanagari": "देवनागरी script of user input",
+  "replyDevanagari": "देवनागरी script of reply",
+  "replyHinglish": "Hinglish transliteration of reply",
+  "replyEnglish": "English translation of reply"
+}
+`;
+
     try {
       const response = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-lite-latest:generateContent?key=" + apiKey, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           contents: [
-            { role: 'user', parts: [{ text: systemPrompt + "\n\nUser says: " + userText }] }
+            { role: 'user', parts: [{ text: structuredPrompt }] }
           ]
         })
       });
@@ -173,15 +196,30 @@ export default function App() {
         throw new Error(data.error?.message || "API Key restricted or invalid.");
       }
       
-      const aiText = data.candidates[0].content.parts[0].text;
-      
+      const rawText = data.candidates[0].content.parts[0].text;
+      const cleanJson = rawText.replace(/```json/g, '').replace(/```/g, '').trim();
+      const parsed = JSON.parse(cleanJson);
+
       setMessages(prev => {
-        const newMessages = [...prev, { sender: 'AI', text: aiText }];
-        return newMessages as Message[];
+        const updated = [...prev];
+        const lastIndex = updated.length - 1;
+        if (lastIndex >= 0 && updated[lastIndex].sender === 'You') {
+          updated[lastIndex] = {
+            ...updated[lastIndex],
+            hinglishHelp: {
+              hinglish: parsed.userHinglish,
+              devanagari: parsed.userDevanagari
+            }
+          };
+        }
+
+        const aiFormattedMessage = `${parsed.replyDevanagari} | ${parsed.replyHinglish} | (${parsed.replyEnglish})`;
+        updated.push({ sender: 'AI', text: aiFormattedMessage });
+        return updated;
       });
 
       if (autoSpeak) {
-        speakText(aiText);
+        speakText(parsed.replyDevanagari);
       }
       
     } catch (error) {
@@ -262,7 +300,7 @@ export default function App() {
                 onChange={(e) => setAutoSpeak(e.target.checked)}
                 className="accent-orange-600 w-4 h-4 cursor-pointer"
               />
-              Auto-Speak
+              Auto-Speak Reply
             </label>
           </div>
         </div>
@@ -272,10 +310,28 @@ export default function App() {
           {messages.map((msg, idx) => (
             <div key={idx} className={`max-w-[85%] p-4 rounded-2xl ${msg.sender === 'You' ? 'bg-orange-500 text-white self-end rounded-tr-none' : 'bg-white shadow-sm border border-gray-200 text-gray-800 self-start rounded-tl-none relative group'}`}>
               <div className="flex justify-between items-start gap-4">
-                <div>
+                <div className="w-full">
                   <p className="text-xs opacity-75 mb-1 font-bold">{msg.sender === 'AI' ? scenarios[scenario].title.split(' ')[0] : 'You'}</p>
                   <p className="leading-relaxed">{msg.sender === 'AI' ? getDisplayText(msg.text) : msg.text}</p>
+                  
+                  {/* Learning prompt on the user's message */}
+                  {msg.hinglishHelp && (
+                    <div className="mt-3 pt-2 border-t border-orange-400/50 flex items-center justify-between text-xs bg-orange-600/30 px-3 py-2 rounded-xl">
+                      <div>
+                        <span className="font-semibold block text-orange-100 uppercase tracking-wider text-[10px]">How to say it:</span>
+                        <span className="font-medium text-white text-sm">{msg.hinglishHelp.hinglish}</span>
+                      </div>
+                      <button 
+                        onClick={() => speakText(msg.hinglishHelp!.devanagari)}
+                        className="ml-2 p-1.5 rounded-full bg-white/20 hover:bg-white/30 text-white transition-colors shrink-0"
+                        title="Hear how to say this"
+                      >
+                        🔊
+                      </button>
+                    </div>
+                  )}
                 </div>
+
                 {msg.sender === 'AI' && !msg.text.includes('Google API Error') && (
                   <button 
                     onClick={() => speakText(msg.text)}
@@ -290,7 +346,7 @@ export default function App() {
           ))}
           {isLoading && (
             <div className="bg-white shadow-sm border border-gray-200 text-gray-800 self-start rounded-tl-none max-w-[85%] p-4 rounded-2xl">
-              <p className="text-sm opacity-75 animate-pulse">Typing...</p>
+              <p className="text-sm opacity-75 animate-pulse">Translating & replying...</p>
             </div>
           )}
           <div ref={chatEndRef} />
@@ -311,7 +367,7 @@ export default function App() {
             type="text" 
             value={inputText}
             onChange={(e: ChangeEvent<HTMLInputElement>) => setInputText(e.target.value)}
-            placeholder={isListening ? "Listening..." : "Type your reply (English or Hinglish)..."}
+            placeholder={isListening ? "Listening..." : "Type in English or Hinglish..."}
             className="flex-1 px-4 py-3 rounded-xl border border-gray-300 focus:outline-none focus:border-orange-500"
             onKeyDown={(e: KeyboardEvent<HTMLInputElement>) => e.key === 'Enter' && !isLoading && handleSend()}
             disabled={isLoading || isListening}

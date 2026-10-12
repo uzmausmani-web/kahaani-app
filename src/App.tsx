@@ -27,21 +27,22 @@ export default function App() {
   const recognitionRef = useRef<any>(null);
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
 
+  // NEW: Bulletproofed instructions so the Lite model never forgets the Devanagari script
   const scenarios: Record<string, { title: string, greeting: string, prompt: string }> = {
     Grandparents: {
       title: 'Dada/Dadi 👵🏽👴🏽',
       greeting: 'बेटा, आज का दिन कैसा था? | Beta, aaj ka din kaisa tha? | (How was your day today?)',
-      prompt: 'You are a loving Indian grandparent talking to your American teen grandchild. Keep responses to 1-2 friendly sentences. You MUST format your exact response like this: [Devanagari script] | [Hinglish script] | (English translation)'
+      prompt: 'You are a loving Indian grandparent talking to your American teen grandchild. Keep responses to 1-2 friendly sentences. CRITICAL INSTRUCTION: You must strictly format your response in three parts separated by the | symbol. Format: [Devanagari script] | [Hinglish script] | (English translation). Example: अच्छा बच्चा! | Achcha bachcha! | (Good child!)'
     },
     Cousin: {
       title: 'Cousin in Delhi 📱',
       greeting: 'और बता, क्या चल रहा है आज कल? | Aur bata, kya chal raha hai aaj kal? | (Tell me, what is up these days?)',
-      prompt: 'You are a cool, 20-something cousin living in Delhi chatting on WhatsApp with your American cousin. Use modern slang. Keep it casual, 1-2 sentences. You MUST format your exact response like this: [Devanagari script] | [Hinglish script] | (English translation)'
+      prompt: 'You are a cool, 20-something cousin living in Delhi chatting on WhatsApp with your American cousin. Use modern slang. Keep it casual, 1-2 sentences. CRITICAL INSTRUCTION: You must strictly format your response in three parts separated by the | symbol. Format: [Devanagari script] | [Hinglish script] | (English translation). Example: क्या बात है यार! | Kya baat hai yaar! | (What is up man!)'
     },
     Shopkeeper: {
       title: 'Street Vendor 🛒',
       greeting: 'आइए आइए! बोलिए क्या चाहिए आपको? | Aaiye aaiye! Boliye kya chahiye aapko? | (Come in! Tell me, what do you need?)',
-      prompt: 'You are a busy but polite street vendor or shopkeeper in North India. Speak to the customer. Keep it to 1-2 sentences. You MUST format your exact response like this: [Devanagari script] | [Hinglish script] | (English translation)'
+      prompt: 'You are a busy but polite street vendor or shopkeeper in North India. Speak to the customer. Keep it to 1-2 sentences. CRITICAL INSTRUCTION: You must strictly format your response in three parts separated by the | symbol. Format: [Devanagari script] | [Hinglish script] | (English translation). Example: हाँ जी, बिल्कुल मिलेगा। | Haan ji, bilkul milega. | (Yes, it will definitely be available.)'
     }
   };
 
@@ -122,7 +123,6 @@ export default function App() {
     const parts = text.split('|');
     let hindiPart = parts.length > 1 ? parts[0].trim() : text.replace(/\(.*\)/g, '').trim();
     
-    // NEW: Force the Apple voice engine to take a breath at commas and emphasize question marks
     hindiPart = hindiPart.replace(/,/g, '... ').replace(/\?/g, ' ?');
     
     const utterance = new SpeechSynthesisUtterance(hindiPart);
@@ -152,12 +152,11 @@ export default function App() {
     }
   };
 
-    const generateAIResponse = async (userText: string) => {
+  const generateAIResponse = async (userText: string) => {
     setIsLoading(true);
     const systemPrompt = scenarios[scenario].prompt;
     
     try {
-      // Swapped to the Lite model for massive free-tier quotas
       const response = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-lite-latest:generateContent?key=" + apiKey, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -191,7 +190,6 @@ export default function App() {
     }
     setIsLoading(false);
   };
-
 
   const handleSend = async () => {
     if (inputText.trim() === '') return;

@@ -31,22 +31,46 @@ export default function App() {
   const recognitionRef = useRef<any>(null);
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
 
-  const scenarios: Record<string, { title: string, greeting: string, prompt: string }> = {
+  // NEW: Converted single greetings into an array of rotating conversation starters
+  const scenarios: Record<string, { title: string, greetings: string[], prompt: string }> = {
     Grandparents: {
       title: 'Dada/Dadi 👵🏽👴🏽',
-      greeting: 'बेटा, आज का दिन कैसा था? | Beta, aaj ka din kaisa tha? | (How was your day today?)',
+      greetings: [
+        'बेटा, आज का दिन कैसा था? | Beta, aaj ka din kaisa tha? | (How was your day today?)',
+        'खाना खा लिया तुमने? | Khaana khaa liya tumne? | (Did you eat your food?)',
+        'क्या कर रहे हो, बेटा? | Kya kar rahe ho, beta? | (What are you doing, child?)',
+        'सुना है तुम रोबोटिक्स में बहुत अच्छा कर रही हो! | Suna hai tum robotics mein bahut achcha kar rahi ho! | (I heard you are doing very well in robotics!)',
+        'आज स्कूल में क्या हुआ? | Aaj school mein kya hua? | (What happened in school today?)'
+      ],
       prompt: 'You are a loving Indian grandparent talking to your American teen grandchild. Keep replies to 1-2 friendly, warm sentences.'
     },
     Cousin: {
       title: 'Cousin in Delhi 📱',
-      greeting: 'और बता, क्या चल रहा है आज कल? | Aur bata, kya chal raha hai aaj kal? | (Tell me, what is up these days?)',
+      greetings: [
+        'और बता, क्या चल रहा है आज कल? | Aur bata, kya chal raha hai aaj kal? | (Tell me, what is up these days?)',
+        'क्या सीन है आज का? | Kya scene hai aaj ka? | (What\'s the plan for today?)',
+        'बिजी है क्या? | Busy hai kya? | (Are you busy?)',
+        'कोई नई फनी रील देखी? | Koi nayi funny reel dekhi? | (Did you see any new funny reel?)',
+        'और यार, सब ठीक? | Aur yaar, sab theek? | (And buddy, everything good?)'
+      ],
       prompt: 'You are a cool, 20-something cousin living in Delhi chatting on WhatsApp with your American cousin. Keep it casual and conversational, 1-2 sentences.'
     },
     Shopkeeper: {
       title: 'Street Vendor 🛒',
-      greeting: 'आइए आइए! बोलिए क्या चाहिए आपको? | Aaiye aaiye! Boliye kya chahiye aapko? | (Come in! Tell me, what do you need?)',
+      greetings: [
+        'आइए आइए! बोलिए क्या चाहिए आपको? | Aaiye aaiye! Boliye kya chahiye aapko? | (Come in! Tell me, what do you need?)',
+        'हाँ जी, बताइए। | Haan ji, bataiye. | (Yes, tell me.)',
+        'आज क्या दिखाऊँ आपको? | Aaj kya dikhaun aapko? | (What should I show you today?)',
+        'नमस्कार जी, बोलिए। | Namaskar ji, boliye. | (Hello, tell me.)'
+      ],
       prompt: 'You are a busy but polite street vendor or shopkeeper in North India chatting with a young customer. Keep it to 1-2 sentences.'
     }
+  };
+
+  // Helper to pick a random greeting
+  const getRandomGreeting = (scenKey: string) => {
+    const greets = scenarios[scenKey].greetings;
+    return greets[Math.floor(Math.random() * greets.length)];
   };
 
   useEffect(() => {
@@ -59,7 +83,8 @@ export default function App() {
     if (savedKey) {
       setApiKey(savedKey);
       setIsKeySet(true);
-      setMessages([{ sender: 'AI', text: scenarios['Grandparents'].greeting }]);
+      // Initialize with a random greeting
+      setMessages([{ sender: 'AI', text: getRandomGreeting('Grandparents') }]);
     }
     
     const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -96,7 +121,7 @@ export default function App() {
     if (apiKey.trim().length > 10) {
       localStorage.setItem('gemini_key', apiKey);
       setIsKeySet(true);
-      setMessages([{ sender: 'AI', text: scenarios[scenario].greeting }]);
+      setMessages([{ sender: 'AI', text: getRandomGreeting(scenario) }]);
     }
   };
 
@@ -109,7 +134,8 @@ export default function App() {
 
   const changeScenario = (newScenario: string) => {
     setScenario(newScenario);
-    setMessages([{ sender: 'AI', text: scenarios[newScenario].greeting }]);
+    // Fetch a fresh greeting when swapping personas
+    setMessages([{ sender: 'AI', text: getRandomGreeting(newScenario) }]);
   };
 
   const getDisplayText = (text: string) => {
@@ -159,7 +185,6 @@ export default function App() {
     setIsLoading(true);
     const personaPrompt = scenarios[scenario].prompt;
     
-    // NEW: Heavily engineered prompt teaching the Lite model how to translate idioms, not words.
     const structuredPrompt = `
 You are the core language engine of "Kahaani", a coaching app helping an Indian-American teenager learn natural North Indian spoken Hinglish.
 The user just sent this message: "${userText}"

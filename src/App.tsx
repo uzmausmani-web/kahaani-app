@@ -27,7 +27,6 @@ export default function App() {
   const recognitionRef = useRef<any>(null);
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
 
-  // NEW: Updated prompts to force a hidden Devanagari script for the voice engine
   const scenarios: Record<string, { title: string, greeting: string, prompt: string }> = {
     Grandparents: {
       title: 'Dada/Dadi 👵🏽👴🏽',
@@ -109,7 +108,6 @@ export default function App() {
     setMessages([{ sender: 'AI', text: scenarios[newScenario].greeting }]);
   };
 
-  // NEW: Helper to extract only the Hinglish and English for the screen
   const getDisplayText = (text: string) => {
     const parts = text.split('|');
     if (parts.length >= 2) {
@@ -121,9 +119,11 @@ export default function App() {
   const speakText = (text: string) => {
     window.speechSynthesis.cancel(); 
     
-    // NEW: Extract ONLY the Devanagari script (before the first pipe) for the voice engine
     const parts = text.split('|');
-    const hindiPart = parts.length > 1 ? parts[0].trim() : text.replace(/\(.*\)/g, '').trim();
+    let hindiPart = parts.length > 1 ? parts[0].trim() : text.replace(/\(.*\)/g, '').trim();
+    
+    // NEW: Force the Apple voice engine to take a breath at commas and emphasize question marks
+    hindiPart = hindiPart.replace(/,/g, '... ').replace(/\?/g, ' ?');
     
     const utterance = new SpeechSynthesisUtterance(hindiPart);
     utterance.lang = 'hi-IN'; 
@@ -274,7 +274,6 @@ export default function App() {
               <div className="flex justify-between items-start gap-4">
                 <div>
                   <p className="text-xs opacity-75 mb-1 font-bold">{msg.sender === 'AI' ? scenarios[scenario].title.split(' ')[0] : 'You'}</p>
-                  {/* NEW: Display only the clean Hinglish/English text on screen */}
                   <p className="leading-relaxed">{msg.sender === 'AI' ? getDisplayText(msg.text) : msg.text}</p>
                 </div>
                 {msg.sender === 'AI' && !msg.text.includes('Google API Error') && (

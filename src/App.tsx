@@ -1,7 +1,13 @@
-import, { useState } from 'react';
+import { useState, ChangeEvent, KeyboardEvent } from 'react';
+
+// This tells TypeScript exactly what a "message" should look like
+interface Message {
+  sender: string;
+  text: string;
+}
 
 export default function App() {
-  const [messages, setMessages] = useState([
+  const [messages, setMessages] = useState<Message[]>([
     { sender: 'Dada/Dadi', text: 'Beta, aaj ka din kaisa tha? (How was your day today?)' }
   ]);
   const [inputText, setInputText] = useState('');
@@ -18,7 +24,7 @@ export default function App() {
   const handleSend = () => {
     if (inputText.trim() === '') return;
     
-    const newMessages = [
+    const newMessages: Message[] = [
       ...messages,
       { sender: 'You', text: inputText },
       { sender: 'Dada/Dadi', text: 'Arre wah! Achha laga sun kar. (Oh wow! Good to hear that.)' }
@@ -31,7 +37,6 @@ export default function App() {
     <div className="min-h-screen bg-orange-50 font-sans p-6">
       <div className="max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-6">
         
-        {/* Left Column: Chat & Topics */}
         <div className="md:col-span-2 flex flex-col gap-4">
           <div className="bg-white p-6 rounded-2xl shadow-sm border border-orange-100">
             <h1 className="text-2xl font-bold text-orange-800 mb-2">Kahaani 💬</h1>
@@ -62,10 +67,10 @@ export default function App() {
               <input 
                 type="text" 
                 value={inputText}
-                onChange={(e) => setInputText(e.target.value)}
+                onChange={(e: ChangeEvent<HTMLInputElement>) => setInputText(e.target.value)}
                 placeholder="Type your reply in Hinglish..."
                 className="flex-1 px-4 py-3 rounded-xl border border-gray-300 focus:outline-none focus:border-orange-500"
-                onKeyDown={(e) => e.key === 'Enter' && handleSend()}
+                onKeyDown={(e: KeyboardEvent<HTMLInputElement>) => e.key === 'Enter' && handleSend()}
               />
               <button 
                 onClick={handleSend}
@@ -77,7 +82,6 @@ export default function App() {
           </div>
         </div>
 
-        {/* Right Column: Sentence Builder */}
         <div className="bg-white p-6 rounded-2xl shadow-sm border border-orange-100">
           <h2 className="text-lg font-bold text-orange-800 mb-4">Sentence Builder 🛠️</h2>
           <p className="text-sm text-gray-600 mb-6">Hindi/Urdu sentence structure is usually <strong>Subject + Object + Verb</strong>.</p>

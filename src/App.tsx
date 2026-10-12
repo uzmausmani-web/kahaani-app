@@ -159,20 +159,33 @@ export default function App() {
     setIsLoading(true);
     const personaPrompt = scenarios[scenario].prompt;
     
+    // NEW: Heavily engineered prompt teaching the Lite model how to translate idioms, not words.
     const structuredPrompt = `
-You are the brain of "Kahaani", a Hinglish language coaching app for an Indian-American teen.
+You are the core language engine of "Kahaani", a coaching app helping an Indian-American teenager learn natural North Indian spoken Hinglish.
 The user just sent this message: "${userText}"
 
-Role: ${personaPrompt}
+Role for Reply: ${personaPrompt}
 
-Perform two tasks:
-1. USER TRANSLATION: Translate what the user wrote into everyday conversational North Indian Hinglish (Latin alphabet) and Devanagari script. If the user already wrote in Hindi/Hinglish, refine it into natural conversational Hinglish.
-2. PERSONA REPLY: Respond in character.
+Task 1: USER TRANSLATION (CRITICAL INSTRUCTION)
+Translate the user's input into natural, everyday spoken Hinglish.
+DO NOT translate literally word-for-word. Capture the actual spoken meaning and conversational phrasing.
+EXAMPLES OF BAD LITERAL VS GOOD NATURAL:
+- Bad Literal: "I am hungry" -> "Main bhookha hoon"
+- Good Natural: "I am hungry" -> "Mujhe bahut bhookh lagi hai" OR "Pet mein choohe kood rahe hain"
+- Bad Literal: "What's up?" -> "Kya upar hai?"
+- Good Natural: "What's up?" -> "Aur batao, kya chal raha hai?"
+- Bad Literal: "This is cool" -> "Yeh thanda hai"
+- Good Natural: "This is cool" -> "Sahi hai yaar" OR "Badiya hai"
+- Bad Literal: "I don't know" -> "Main nahi jaanta"
+- Good Natural: "I don't know" -> "Mujhe nahi pata"
 
-CRITICAL: Return ONLY valid JSON in this exact structure with no Markdown wrapping:
+Task 2: PERSONA REPLY
+Respond in character to the user's message.
+
+Return ONLY valid JSON in this exact structure with no Markdown wrapping:
 {
-  "userHinglish": "Everyday Hinglish version of user input",
-  "userDevanagari": "देवनागरी script of user input",
+  "userHinglish": "Natural, spoken Hinglish version of user input",
+  "userDevanagari": "देवनागरी script of the natural user input",
   "replyDevanagari": "देवनागरी script of reply",
   "replyHinglish": "Hinglish transliteration of reply",
   "replyEnglish": "English translation of reply"
@@ -314,7 +327,6 @@ CRITICAL: Return ONLY valid JSON in this exact structure with no Markdown wrappi
                   <p className="text-xs opacity-75 mb-1 font-bold">{msg.sender === 'AI' ? scenarios[scenario].title.split(' ')[0] : 'You'}</p>
                   <p className="leading-relaxed">{msg.sender === 'AI' ? getDisplayText(msg.text) : msg.text}</p>
                   
-                  {/* Learning prompt on the user's message */}
                   {msg.hinglishHelp && (
                     <div className="mt-3 pt-2 border-t border-orange-400/50 flex items-center justify-between text-xs bg-orange-600/30 px-3 py-2 rounded-xl">
                       <div>

@@ -119,8 +119,8 @@ export default function App() {
     const systemPrompt = scenarios[scenario].prompt;
     
     try {
-      // Bypassing the traffic jam by routing to the Gemini 3.5 Flash endpoint
-      const response = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=" + apiKey, {
+      // Forcing the ultra-stable gemini-2.5-flash model to bypass server congestion
+      const response = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=" + apiKey, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -233,4 +233,62 @@ export default function App() {
         {/* Chat History Area */}
         <div className="flex-1 bg-gray-50 p-6 overflow-y-auto border-x border-orange-100 flex flex-col gap-4">
           {messages.map((msg, idx) => (
-            <div key={idx} className={
+            <div key={idx} className={`max-w-[85%] p-4 rounded-2xl ${msg.sender === 'You' ? 'bg-orange-500 text-white self-end rounded-tr-none' : 'bg-white shadow-sm border border-gray-200 text-gray-800 self-start rounded-tl-none relative group'}`}>
+              <div className="flex justify-between items-start gap-4">
+                <div>
+                  <p className="text-xs opacity-75 mb-1 font-bold">{msg.sender === 'AI' ? scenarios[scenario].title.split(' ')[0] : 'You'}</p>
+                  <p className="leading-relaxed">{msg.text}</p>
+                </div>
+                {msg.sender === 'AI' && !msg.text.includes('Google API Error') && (
+                  <button 
+                    onClick={() => speakText(msg.text)}
+                    className="p-2 rounded-full bg-orange-100 text-orange-600 hover:bg-orange-200 transition-colors shrink-0"
+                    title="Listen"
+                  >
+                    🔊
+                  </button>
+                )}
+              </div>
+            </div>
+          ))}
+          {isLoading && (
+            <div className="bg-white shadow-sm border border-gray-200 text-gray-800 self-start rounded-tl-none max-w-[85%] p-4 rounded-2xl">
+              <p className="text-sm opacity-75 animate-pulse">Typing...</p>
+            </div>
+          )}
+          <div ref={chatEndRef} />
+        </div>
+
+        {/* Input Area */}
+        <div className="bg-white p-4 rounded-b-2xl shadow-sm border border-orange-100 flex gap-2">
+          {recognitionRef.current && (
+            <button 
+              onClick={toggleListen}
+              className={`p-3 rounded-xl font-bold transition-colors shrink-0 ${isListening ? 'bg-red-500 text-white animate-pulse' : 'bg-orange-100 text-orange-600 hover:bg-orange-200'}`}
+              title="Voice Typing"
+            >
+              {isListening ? '🛑' : '🎤'}
+            </button>
+          )}
+          <input 
+            type="text" 
+            value={inputText}
+            onChange={(e: ChangeEvent<HTMLInputElement>) => setInputText(e.target.value)}
+            placeholder={isListening ? "Listening..." : "Type your reply (English or Hinglish)..."}
+            className="flex-1 px-4 py-3 rounded-xl border border-gray-300 focus:outline-none focus:border-orange-500"
+            onKeyDown={(e: KeyboardEvent<HTMLInputElement>) => e.key === 'Enter' && !isLoading && handleSend()}
+            disabled={isLoading || isListening}
+          />
+          <button 
+            onClick={handleSend}
+            disabled={isLoading}
+            className="bg-orange-600 hover:bg-orange-700 disabled:bg-orange-300 text-white px-6 py-3 rounded-xl font-bold transition-colors"
+          >
+            Send
+          </button>
+        </div>
+
+      </div>
+    </div>
+  );
+}

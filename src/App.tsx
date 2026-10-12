@@ -60,35 +60,31 @@ export default function App() {
     setMessages([{ sender: 'AI', text: scenarios[newScenario].greeting }]);
   };
 
-      const generateAIResponse = async (userText: string) => {
+        const generateAIResponse = async (userText: string) => {
     setIsLoading(true);
-    const systemPrompt = scenarios[scenario].prompt;
     
     try {
-      // Using the exact flash-latest model with backticks for the URL
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${apiKey}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [
-            { role: 'user', parts: [{ text: `${systemPrompt}\n\nUser says: ${userText}` }] }
-          ]
-        })
-      });
-      
+      // Calling the exact diagnostic tool Google requested
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
       const data = await response.json();
       
       if (!response.ok) {
         throw new Error(data.error?.message || `HTTP Error ${response.status}`);
       }
       
-      const aiText = data.candidates[0].content.parts[0].text;
-      setMessages(prev => [...prev, { sender: 'AI', text: aiText }]);
+      // Extract the names of all models your key can access
+      const availableModels = data.models
+        .filter((m: any) => m.supportedGenerationMethods?.includes('generateContent'))
+        .map((m: any) => m.name.replace('models/', ''))
+        .join(', ');
+        
+      setMessages(prev => [...prev, { sender: 'AI', text: `Your key has access to: ${availableModels}` }]);
     } catch (error: any) {
-      setMessages(prev => [...prev, { sender: 'AI', text: `Google API Error: ${error.message}` }]);
+      setMessages(prev => [...prev, { sender: 'AI', text: `Diagnostic Error: ${error.message}` }]);
     }
     setIsLoading(false);
   };
+
 
 
 

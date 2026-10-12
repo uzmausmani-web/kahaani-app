@@ -1,153 +1,181 @@
-import { useState, ChangeEvent, KeyboardEvent } from 'react';
+import { useState, ChangeEvent, KeyboardEvent, useRef, useEffect } from 'react';
 
 interface Message {
-  sender: string;
+  sender: 'You' | 'AI';
   text: string;
 }
 
 export default function App() {
-  const [messages, setMessages] = useState<Message[]>([
-    { sender: 'Dada/Dadi', text: 'Beta, aaj ka din kaisa tha? (How was your day today?)' }
-  ]);
+  const [apiKey, setApiKey] = useState('');
+  const [isKeySet, setIsKeySet] = useState(false);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [inputText, setInputText] = useState('');
-  const [selectedTopic, setSelectedTopic] = useState('School');
-  const [lookupWord, setLookupWord] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  
+  const [scenario, setScenario] = useState('Grandparents');
+  const chatEndRef = useRef<HTMLDivElement>(null);
 
-  const topics = ['School', 'Food', 'Health', 'Hobbies'];
-
-  // Topic-specific cheat sheet with conversational translations
-  const quickTranslations: Record<string, {en: string, hi: string}[]> = {
-    School: [
-      { en: "My day was good.", hi: "Mera din achha tha." },
-      { en: "College is going well.", hi: "College achha chal raha hai." },
-      { en: "I have a lot of homework.", hi: "Mujhe bahut homework mila hai." }
-    ],
-    Food: [
-      { en: "I am hungry.", hi: "Mujhe bhookh lagi hai." },
-      { en: "I ate dinner already.", hi: "Maine khana kha liya hai." },
-      { en: "The food was delicious.", hi: "Khana bahut mazedar tha." }
-    ],
-    Health: [
-      { en: "I am a little tired.", hi: "Main thodi thak gayi hoon." },
-      { en: "I feel great today.", hi: "Main aaj bahut achha feel kar rahi hoon." },
-      { en: "I didn't sleep well.", hi: "Main theek se so nahi payi." }
-    ],
-    Hobbies: [
-      { en: "I am hanging out with friends.", hi: "Main doston ke saath hoon." },
-      { en: "I was working on robotics.", hi: "Main robotics par kaam kar rahi thi." },
-      { en: "I am listening to music.", hi: "Main gaane sun rahi hoon." }
-    ]
+  const scenarios: Record<string, { title: string, greeting: string, prompt: string }> = {
+    Grandparents: {
+      title: 'Dada/Dadi 👵🏽👴🏽',
+      greeting: 'Beta, aaj ka din kaisa tha? (How was your day today?)',
+      prompt: 'You are a loving Indian grandparent talking to your American teen grandchild. Speak in natural Hinglish (mix of Hindi/Urdu/English). Keep responses to 1-2 friendly sentences. Always include the English translation in parentheses at the end.'
+    },
+    Cousin: {
+      title: 'Cousin in Delhi 📱',
+      greeting: 'Aur bata, kya chal raha hai aaj kal? (Tell me, what is up these days?)',
+      prompt: 'You are a cool, 20-something cousin living in Delhi chatting on WhatsApp with your American cousin. Use modern Hinglish slang. Keep it casual, 1-2 sentences. Always include the English translation in parentheses at the end.'
+    },
+    Shopkeeper: {
+      title: 'Street Vendor 🛒',
+      greeting: 'Aaiye aaiye! Boliye kya chahiye aapko? (Come in! Tell me, what do you need?)',
+      prompt: 'You are a busy but polite street vendor or shopkeeper in North India. The user is a customer. Speak in everyday Hinglish. Keep it to 1-2 sentences. Always include the English translation in parentheses at the end.'
+    }
   };
 
-  // Mini live dictionary for common words
-  const liveDictionary: Record<string, string> = {
-    "i": "main", "you": "aap", "good": "achha", "bad": "kharab",
-    "food": "khana", "eat": "khana", "ate": "khaya", "water": "paani",
-    "tired": "thak gayi", "happy": "khush", "sad": "udaas", "friend": "dost",
-    "friends": "dost", "yes": "haan", "no": "nahi", "today": "aaj", 
-    "tomorrow": "kal", "yesterday": "kal", "sleep": "sona", "school": "school"
+  // Load key from local storage so you don't have to re-enter it
+  useEffect(() => {
+    const savedKey = localStorage.getItem('gemini_key');
+    if (savedKey) {
+      setApiKey(savedKey);
+      setIsKeySet(true);
+      setMessages([{ sender: 'AI', text: scenarios['Grandparents'].greeting }]);
+    }
+  }, []);
+
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
+
+  const saveKey = () => {
+    if (apiKey.trim().length > 10) {
+      localStorage.setItem('gemini_key', apiKey);
+      setIsKeySet(true);
+      setMessages([{ sender: 'AI', text: scenarios[scenario].greeting }]);
+    }
   };
 
-  const handleSend = () => {
+  const changeScenario = (newScenario: string) => {
+    setScenario(newScenario);
+    setMessages([{ sender: 'AI', text: scenarios[newScenario].greeting }]);
+  };
+
+  const generateAIResponse = async (userText: string) => {
+    setIsLoading(true);
+    const systemPrompt = scenarios[scenario].prompt;
+    
+    try {
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [
+            { role: 'user', parts: [{ text: `${systemPrompt}\n\nUser says: ${userText}` }] }
+          ]
+        })
+      });
+      
+      const data = await response.json();
+      if (data.error) throw new Error(data.error.message);
+      
+      const aiText = data.candidates[0].content.parts[0].text;
+      setMessages(prev => [...prev, { sender: 'AI', text: aiText }]);
+    } catch (error) {
+      setMessages(prev => [...prev, { sender: 'AI', text: 'Arre yaar, connection fail ho gaya. (Oops, connection failed. Check your API key.)' }]);
+    }
+    setIsLoading(false);
+  };
+
+  const handleSend = async () => {
     if (inputText.trim() === '') return;
     
-    const newMessages: Message[] = [
-      ...messages,
-      { sender: 'You', text: inputText },
-      { sender: 'Dada/Dadi', text: 'Arre wah! Yeh sun kar achha laga. (Oh wow! Good to hear that.)' }
-    ];
-    setMessages(newMessages);
+    const userText = inputText;
+    setMessages(prev => [...prev, { sender: 'You', text: userText }]);
     setInputText('');
+    
+    await generateAIResponse(userText);
   };
 
-  const handleLookup = (e: ChangeEvent<HTMLInputElement>) => {
-    setLookupWord(e.target.value.toLowerCase());
-  };
+  // Setup Screen if API Key is missing
+  if (!isKeySet) {
+    return (
+      <div className="min-h-screen bg-orange-50 flex items-center justify-center p-6">
+        <div className="bg-white p-8 rounded-2xl shadow-sm border border-orange-100 max-w-md w-full">
+          <h1 className="text-2xl font-bold text-orange-800 mb-4">Unlock the AI Brain 🧠</h1>
+          <p className="text-gray-600 mb-6 text-sm">To make the conversations dynamic, you need a free Google Gemini API key. This acts as the engine for the app.</p>
+          <input 
+            type="password"
+            value={apiKey}
+            onChange={(e) => setApiKey(e.target.value)}
+            placeholder="Paste API Key here..."
+            className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:outline-none focus:border-orange-500 mb-4"
+          />
+          <button 
+            onClick={saveKey}
+            className="w-full bg-orange-600 hover:bg-orange-700 text-white px-6 py-3 rounded-xl font-bold transition-colors"
+          >
+            Start App
+          </button>
+        </div>
+      </div>
+    );
+  }
 
+  // Main Chat App
   return (
-    <div className="min-h-screen bg-orange-50 font-sans p-6">
-      <div className="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-6">
+    <div className="min-h-screen bg-orange-50 font-sans p-4 md:p-8">
+      <div className="max-w-3xl mx-auto flex flex-col h-[90vh]">
         
-        {/* Left Column: Chat Area */}
-        <div className="md:col-span-2 flex flex-col gap-4">
-          <div className="bg-white p-6 rounded-2xl shadow-sm border border-orange-100">
-            <h1 className="text-2xl font-bold text-orange-800 mb-2">Kahaani 💬</h1>
-            <p className="text-gray-600 mb-4">Select a topic and practice talking with your grandparents!</p>
-            
-            <div className="flex gap-2 mb-6 overflow-x-auto">
-              {topics.map(topic => (
-                <button 
-                  key={topic}
-                  onClick={() => setSelectedTopic(topic)}
-                  className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${selectedTopic === topic ? 'bg-orange-500 text-white' : 'bg-orange-100 text-orange-800 hover:bg-orange-200'}`}
-                >
-                  {topic}
-                </button>
-              ))}
-            </div>
-
-            <div className="bg-gray-50 h-80 rounded-xl p-4 overflow-y-auto flex flex-col gap-3 border border-gray-200">
-              {messages.map((msg, idx) => (
-                <div key={idx} className={`max-w-[80%] p-3 rounded-xl ${msg.sender === 'You' ? 'bg-orange-500 text-white self-end rounded-tr-none' : 'bg-white border border-gray-200 text-gray-800 self-start rounded-tl-none'}`}>
-                  <p className="text-xs opacity-75 mb-1 font-bold">{msg.sender}</p>
-                  <p>{msg.text}</p>
-                </div>
-              ))}
-            </div>
-
-            <div className="mt-4 flex gap-2">
-              <input 
-                type="text" 
-                value={inputText}
-                onChange={(e: ChangeEvent<HTMLInputElement>) => setInputText(e.target.value)}
-                placeholder="Type your reply in Hinglish..."
-                className="flex-1 px-4 py-3 rounded-xl border border-gray-300 focus:outline-none focus:border-orange-500"
-                onKeyDown={(e: KeyboardEvent<HTMLInputElement>) => e.key === 'Enter' && handleSend()}
-              />
+        {/* Header & Scenarios */}
+        <div className="bg-white p-6 rounded-t-2xl shadow-sm border border-orange-100 z-10">
+          <h1 className="text-2xl font-bold text-orange-800 mb-4">Kahaani 💬</h1>
+          <div className="flex gap-2 overflow-x-auto pb-2">
+            {Object.keys(scenarios).map(scen => (
               <button 
-                onClick={handleSend}
-                className="bg-orange-600 hover:bg-orange-700 text-white px-6 py-3 rounded-xl font-bold transition-colors"
+                key={scen}
+                onClick={() => changeScenario(scen)}
+                className={`whitespace-nowrap px-4 py-2 rounded-full text-sm font-medium transition-colors ${scenario === scen ? 'bg-orange-500 text-white' : 'bg-orange-100 text-orange-800 hover:bg-orange-200'}`}
               >
-                Send
+                {scenarios[scen].title}
               </button>
-            </div>
+            ))}
           </div>
         </div>
 
-        {/* Right Column: Translation Helper */}
-        <div className="flex flex-col gap-4">
-          <div className="bg-white p-6 rounded-2xl shadow-sm border border-orange-100 flex-1">
-            <h2 className="text-lg font-bold text-orange-800 mb-2">Cheat Sheet 📝</h2>
-            <p className="text-xs text-gray-500 mb-4">Click an English phrase to use it in the chat.</p>
-            
-            <div className="flex flex-col gap-3 mb-6">
-              {quickTranslations[selectedTopic].map((item, i) => (
-                <button 
-                  key={i}
-                  onClick={() => setInputText(item.hi)}
-                  className="text-left bg-orange-50 hover:bg-orange-100 p-3 rounded-lg border border-orange-100 transition-colors"
-                >
-                  <p className="text-xs text-gray-500 font-medium mb-1">"{item.en}"</p>
-                  <p className="text-sm text-orange-900 font-bold">{item.hi}</p>
-                </button>
-              ))}
+        {/* Chat History Area */}
+        <div className="flex-1 bg-gray-50 p-6 overflow-y-auto border-x border-orange-100 flex flex-col gap-4">
+          {messages.map((msg, idx) => (
+            <div key={idx} className={`max-w-[85%] p-4 rounded-2xl ${msg.sender === 'You' ? 'bg-orange-500 text-white self-end rounded-tr-none' : 'bg-white shadow-sm border border-gray-200 text-gray-800 self-start rounded-tl-none'}`}>
+              <p className="text-xs opacity-75 mb-1 font-bold">{msg.sender === 'AI' ? scenarios[scenario].title.split(' ')[0] : 'You'}</p>
+              <p className="leading-relaxed">{msg.text}</p>
             </div>
+          ))}
+          {isLoading && (
+            <div className="bg-white shadow-sm border border-gray-200 text-gray-800 self-start rounded-tl-none max-w-[85%] p-4 rounded-2xl">
+              <p className="text-sm opacity-75 animate-pulse">Typing...</p>
+            </div>
+          )}
+          <div ref={chatEndRef} />
+        </div>
 
-            <div className="pt-4 border-t border-gray-100">
-              <h2 className="text-sm font-bold text-orange-800 mb-2">Word Translator 🔍</h2>
-              <input 
-                type="text"
-                onChange={handleLookup}
-                placeholder="Type an English word..."
-                className="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 focus:outline-none focus:border-orange-500 mb-2"
-              />
-              <div className="h-10 bg-gray-50 rounded-lg flex items-center px-3 border border-gray-200">
-                <span className="text-sm text-gray-700 font-medium">
-                  {lookupWord === '' ? 'Translation will appear here' : (liveDictionary[lookupWord] || 'Word not in demo dictionary yet!')}
-                </span>
-              </div>
-            </div>
-          </div>
+        {/* Input Area */}
+        <div className="bg-white p-4 rounded-b-2xl shadow-sm border border-orange-100 flex gap-2">
+          <input 
+            type="text" 
+            value={inputText}
+            onChange={(e: ChangeEvent<HTMLInputElement>) => setInputText(e.target.value)}
+            placeholder="Type your reply (English or Hinglish)..."
+            className="flex-1 px-4 py-3 rounded-xl border border-gray-300 focus:outline-none focus:border-orange-500"
+            onKeyDown={(e: KeyboardEvent<HTMLInputElement>) => e.key === 'Enter' && !isLoading && handleSend()}
+            disabled={isLoading}
+          />
+          <button 
+            onClick={handleSend}
+            disabled={isLoading}
+            className="bg-orange-600 hover:bg-orange-700 disabled:bg-orange-300 text-white px-6 py-3 rounded-xl font-bold transition-colors"
+          >
+            Send
+          </button>
         </div>
 
       </div>

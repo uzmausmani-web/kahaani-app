@@ -60,12 +60,13 @@ export default function App() {
     setMessages([{ sender: 'AI', text: scenarios[newScenario].greeting }]);
   };
 
-    const generateAIResponse = async (userText: string) => {
+      const generateAIResponse = async (userText: string) => {
     setIsLoading(true);
     const systemPrompt = scenarios[scenario].prompt;
     
     try {
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${apiKey}`, {
+      // Using the exact flash-latest model with backticks for the URL
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${apiKey}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -77,7 +78,6 @@ export default function App() {
       
       const data = await response.json();
       
-      // This will catch the exact error Google sends back
       if (!response.ok) {
         throw new Error(data.error?.message || `HTTP Error ${response.status}`);
       }
@@ -85,11 +85,11 @@ export default function App() {
       const aiText = data.candidates[0].content.parts[0].text;
       setMessages(prev => [...prev, { sender: 'AI', text: aiText }]);
     } catch (error: any) {
-      // This prints the actual error message to the chat screen
       setMessages(prev => [...prev, { sender: 'AI', text: `Google API Error: ${error.message}` }]);
     }
     setIsLoading(false);
   };
+
 
 
   const handleSend = async () => {

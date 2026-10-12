@@ -60,13 +60,13 @@ export default function App() {
     setMessages([{ sender: 'AI', text: scenarios[newScenario].greeting }]);
   };
 
-              const generateAIResponse = async (userText: string) => {
+                const generateAIResponse = async (userText: string) => {
     setIsLoading(true);
     const systemPrompt = scenarios[scenario].prompt;
     
     try {
-      // Using standard string addition so quotes cannot break the API key
-      const response = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=" + apiKey, {
+      // Updated to use the supported gemini-flash-latest model
+      const response = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=" + apiKey, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -90,6 +90,7 @@ export default function App() {
     }
     setIsLoading(false);
   };
+
 
 
   const handleSend = async () => {

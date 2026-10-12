@@ -11,9 +11,13 @@ export default function App() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputText, setInputText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isListening, setIsListening] = useState(false);
   
   const [scenario, setScenario] = useState('Grandparents');
   const chatEndRef = useRef<HTMLDivElement>(null);
+  
+  // Reference for the speech recognition engine
+  const recognitionRef = useRef<any>(null);
 
   const scenarios: Record<string, { title: string, greeting: string, prompt: string }> = {
     Grandparents: {
@@ -33,13 +37,38 @@ export default function App() {
     }
   };
 
-  // Load key from local storage so you don't have to re-enter it
   useEffect(() => {
     const savedKey = localStorage.getItem('gemini_key');
     if (savedKey) {
       setApiKey(savedKey);
       setIsKeySet(true);
       setMessages([{ sender: 'AI', text: scenarios['Grandparents'].greeting }]);
+    }
+    
+    // Initialize Speech Recognition (Chrome/Edge/Safari)
+    const SpeechRecognition = window.SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (SpeechRecognition) {
+      recognitionRef.current = new SpeechRecognition();
+      recognitionRef.current.continuous = true;
+      recognitionRef.current.interimResults = true;
+      recognitionRef.current.lang = 'hi-IN'; // Listen for Hindi/Hinglish accent
+      
+      recognitionRef.current.onresult = (event: any) => {
+        let currentTranscript = '';
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          currentTranscript += event.results[i][0].transcript;
+        }
+        setInputText(currentTranscript);
+      };
+
+      recognitionRef.current.onerror = (event: any) => {
+        console.error("Speech Recognition Error: ", event.error);
+        setIsListening(false);
+      };
+
+      recognitionRef.current.onend = () => {
+        setIsListening(false);
+      };
     }
   }, []);
 
@@ -55,17 +84,44 @@ export default function App() {
     }
   };
 
+  const clearKey = () => {
+    localStorage.removeItem('gemini_key');
+    setApiKey('');
+    setIsKeySet(false);
+    setMessages([]);
+  };
+
   const changeScenario = (newScenario: string) => {
     setScenario(newScenario);
     setMessages([{ sender: 'AI', text: scenarios[newScenario].greeting }]);
   };
 
-                const generateAIResponse = async (userText: string) => {
+  const speakText = (text: string) => {
+    // Strip out the English translation in parentheses for a cleaner audio experience
+    const hindiPart = text.replace(/\(.*\)/g, '').trim();
+    
+    const utterance = new SpeechSynthesisUtterance(hindiPart);
+    utterance.lang = 'hi-IN'; // Force a North Indian accent
+    utterance.rate = 0.9; // Slow it down slightly for easier listening
+    window.speechSynthesis.speak(utterance);
+  };
+
+  const toggleListen = () => {
+    if (isListening) {
+      recognitionRef.current?.stop();
+      setIsListening(false);
+    } else {
+      setInputText('');
+      recognitionRef.current?.start();
+      setIsListening(true);
+    }
+  };
+
+  const generateAIResponse = async (userText: string) => {
     setIsLoading(true);
     const systemPrompt = scenarios[scenario].prompt;
     
     try {
-      // Updated to use the supported gemini-flash-latest model
       const response = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=" + apiKey, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -91,10 +147,13 @@ export default function App() {
     setIsLoading(false);
   };
 
-
-
   const handleSend = async () => {
     if (inputText.trim() === '') return;
+    
+    if (isListening) {
+      recognitionRef.current?.stop();
+      setIsListening(false);
+    }
     
     const userText = inputText;
     setMessages(prev => [...prev, { sender: 'You', text: userText }]);
@@ -103,7 +162,6 @@ export default function App() {
     await generateAIResponse(userText);
   };
 
-  // Setup Screen if API Key is missing
   if (!isKeySet) {
     return (
       <div className="min-h-screen bg-orange-50 flex items-center justify-center p-6">
@@ -128,14 +186,18 @@ export default function App() {
     );
   }
 
-  // Main Chat App
   return (
     <div className="min-h-screen bg-orange-50 font-sans p-4 md:p-8">
       <div className="max-w-3xl mx-auto flex flex-col h-[90vh]">
         
         {/* Header & Scenarios */}
         <div className="bg-white p-6 rounded-t-2xl shadow-sm border border-orange-100 z-10">
-          <h1 className="text-2xl font-bold text-orange-800 mb-4">Kahaani 💬</h1>
+          <div className="flex justify-between items-center mb-4">
+            <h1 className="text-2xl font-bold text-orange-800">Kahaani 💬</h1>
+            <button onClick={clearKey} className="text-xs font-bold text-gray-400 hover:text-orange-600 underline">
+              Reset API Key
+            </button>
+          </div>
           <div className="flex gap-2 overflow-x-auto pb-2">
             {Object.keys(scenarios).map(scen => (
               <button 
@@ -152,9 +214,22 @@ export default function App() {
         {/* Chat History Area */}
         <div className="flex-1 bg-gray-50 p-6 overflow-y-auto border-x border-orange-100 flex flex-col gap-4">
           {messages.map((msg, idx) => (
-            <div key={idx} className={`max-w-[85%] p-4 rounded-2xl ${msg.sender === 'You' ? 'bg-orange-500 text-white self-end rounded-tr-none' : 'bg-white shadow-sm border border-gray-200 text-gray-800 self-start rounded-tl-none'}`}>
-              <p className="text-xs opacity-75 mb-1 font-bold">{msg.sender === 'AI' ? scenarios[scenario].title.split(' ')[0] : 'You'}</p>
-              <p className="leading-relaxed">{msg.text}</p>
+            <div key={idx} className={`max-w-[85%] p-4 rounded-2xl ${msg.sender === 'You' ? 'bg-orange-500 text-white self-end rounded-tr-none' : 'bg-white shadow-sm border border-gray-200 text-gray-800 self-start rounded-tl-none relative group'}`}>
+              <div className="flex justify-between items-start gap-4">
+                <div>
+                  <p className="text-xs opacity-75 mb-1 font-bold">{msg.sender === 'AI' ? scenarios[scenario].title.split(' ')[0] : 'You'}</p>
+                  <p className="leading-relaxed">{msg.text}</p>
+                </div>
+                {msg.sender === 'AI' && !msg.text.includes('Google API Error') && (
+                  <button 
+                    onClick={() => speakText(msg.text)}
+                    className="p-2 rounded-full bg-orange-100 text-orange-600 hover:bg-orange-200 transition-colors shrink-0"
+                    title="Listen"
+                  >
+                    🔊
+                  </button>
+                )}
+              </div>
             </div>
           ))}
           {isLoading && (
@@ -167,14 +242,23 @@ export default function App() {
 
         {/* Input Area */}
         <div className="bg-white p-4 rounded-b-2xl shadow-sm border border-orange-100 flex gap-2">
+          {recognitionRef.current && (
+            <button 
+              onClick={toggleListen}
+              className={`p-3 rounded-xl font-bold transition-colors shrink-0 ${isListening ? 'bg-red-500 text-white animate-pulse' : 'bg-orange-100 text-orange-600 hover:bg-orange-200'}`}
+              title="Voice Typing"
+            >
+              {isListening ? '🛑' : '🎤'}
+            </button>
+          )}
           <input 
             type="text" 
             value={inputText}
             onChange={(e: ChangeEvent<HTMLInputElement>) => setInputText(e.target.value)}
-            placeholder="Type your reply (English or Hinglish)..."
+            placeholder={isListening ? "Listening..." : "Type your reply (English or Hinglish)..."}
             className="flex-1 px-4 py-3 rounded-xl border border-gray-300 focus:outline-none focus:border-orange-500"
             onKeyDown={(e: KeyboardEvent<HTMLInputElement>) => e.key === 'Enter' && !isLoading && handleSend()}
-            disabled={isLoading}
+            disabled={isLoading || isListening}
           />
           <button 
             onClick={handleSend}

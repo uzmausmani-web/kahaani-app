@@ -31,13 +31,14 @@ export default function App() {
   const recognitionRef = useRef<any>(null);
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
 
+  // NEW: Added Salaam and Adaab greetings to the rotation, blending Hindi and Urdu naturally
   const scenarios: Record<string, { title: string, greetings: string[], prompt: string }> = {
     Grandparents: {
       title: 'Dada/Dadi 👵🏽👴🏽',
       greetings: [
         'बेटा, आज का दिन कैसा था? | Beta, aaj ka din kaisa tha? | (How was your day today?)',
+        'अस्सलाम वालेकुम बेटा, कैसे हो? | Assalamualaikum beta, kaise ho? | (Peace be upon you child, how are you?)',
         'खाना खा लिया तुमने? | Khaana khaa liya tumne? | (Did you eat your food?)',
-        'क्या कर रहे हो, बेटा? | Kya kar rahe ho, beta? | (What are you doing, child?)',
         'सुना है तुम रोबोटिक्स में बहुत अच्छा कर रही हो! | Suna hai tum robotics mein bahut achcha kar rahi ho! | (I heard you are doing very well in robotics!)',
         'आज स्कूल में क्या हुआ? | Aaj school mein kya hua? | (What happened in school today?)'
       ],
@@ -47,7 +48,7 @@ export default function App() {
       title: 'Cousin in Delhi 📱',
       greetings: [
         'और बता, क्या चल रहा है आज कल? | Aur bata, kya chal raha hai aaj kal? | (Tell me, what is up these days?)',
-        'क्या सीन है आज का? | Kya scene hai aaj ka? | (What\'s the plan for today?)',
+        'सलाम यार, क्या सीन है आज का? | Salaam yaar, kya scene hai aaj ka? | (Peace buddy, what\'s the plan for today?)',
         'बिजी है क्या? | Busy hai kya? | (Are you busy?)',
         'कोई नई फनी रील देखी? | Koi nayi funny reel dekhi? | (Did you see any new funny reel?)',
         'और यार, सब ठीक? | Aur yaar, sab theek? | (And buddy, everything good?)'
@@ -58,8 +59,8 @@ export default function App() {
       title: 'Street Vendor 🛒',
       greetings: [
         'आइए आइए! बोलिए क्या चाहिए आपको? | Aaiye aaiye! Boliye kya chahiye aapko? | (Come in! Tell me, what do you need?)',
-        'हाँ जी, बताइए। | Haan ji, bataiye. | (Yes, tell me.)',
-        'आज क्या दिखाऊँ आपको? | Aaj kya dikhaun aapko? | (What should I show you today?)',
+        'अस्सलाम वालेकुम जी, बताइए। | Assalamualaikum ji, bataiye. | (Peace be upon you, tell me.)',
+        'आदाब! आज क्या दिखाऊँ आपको? | Adaab! Aaj kya dikhaun aapko? | (Greetings! What should I show you today?)',
         'नमस्कार जी, बोलिए। | Namaskar ji, boliye. | (Hello, tell me.)'
       ],
       prompt: 'You are a busy but polite street vendor or shopkeeper in North India chatting with a young customer. Keep it to 1-2 sentences.'
@@ -182,9 +183,8 @@ export default function App() {
     const personaPrompt = scenarios[scenario].prompt;
     const currentScenarioName = scenarios[scenario].title;
     
-    // NEW: Taught the AI how to adjust respect levels (Aap/Tum/Tu) based on who it's translating for
     const structuredPrompt = `
-You are the core language engine of "Kahaani", a coaching app helping an Indian-American teenager learn natural North Indian spoken Hinglish.
+You are the core language engine of "Kahaani", a coaching app helping an Indian-American teenager learn natural North Indian spoken Hinglish (a rich blend of Hindi and Urdu).
 The user just sent this message: "${userText}"
 
 Role for Reply: ${personaPrompt}
@@ -192,6 +192,7 @@ Current Scenario: ${currentScenarioName}
 
 Task 1: USER TRANSLATION (CRITICAL INSTRUCTION)
 Translate the user's input into natural, everyday spoken Hinglish. DO NOT translate literally.
+Reflect a natural North Indian vocabulary that freely mixes Hindi and Urdu (e.g., using "Salaam", "Adaab", "Shukriya", "Badi meherbani" alongside traditional Hindi).
 
 CRITICAL TONE ADJUSTMENT: You MUST adjust pronouns and verb endings based on the Current Scenario:
 - If talking to Grandparents: Use respectful "Aap" and formal verbs (e.g., "Aap kaise hain?", "Aur aap bataiye", "Kya main aa sakti hoon?"). NEVER use "Tu" or "Tum".
@@ -199,7 +200,7 @@ CRITICAL TONE ADJUSTMENT: You MUST adjust pronouns and verb endings based on the
 - If talking to Street Vendor: Use polite "Bhaiya" / "Aap" (e.g., "Bhaiya, kitne ka hai?", "Aap mujhe yeh de dijiye").
 
 Task 2: PERSONA REPLY
-Respond in character to the user's message.
+Respond in character to the user's message, maintaining the appropriate mix of cultural greetings.
 
 Return ONLY valid JSON in this exact structure with no Markdown wrapping:
 {

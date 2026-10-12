@@ -1,5 +1,13 @@
 import { useState, ChangeEvent, KeyboardEvent, useRef, useEffect } from 'react';
 
+// This explicitly tells Vercel's strict TypeScript checker to allow the Speech API
+declare global {
+  interface Window {
+    SpeechRecognition: any;
+    webkitSpeechRecognition: any;
+  }
+}
+
 interface Message {
   sender: 'You' | 'AI';
   text: string;
@@ -45,9 +53,10 @@ export default function App() {
       setMessages([{ sender: 'AI', text: scenarios['Grandparents'].greeting }]);
     }
     
-    const SpeechRecognition = window.SpeechRecognition || (window as any).webkitSpeechRecognition;
-    if (SpeechRecognition) {
-      recognitionRef.current = new SpeechRecognition();
+    // Using the safely declared global window properties
+    const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (SpeechRecognitionAPI) {
+      recognitionRef.current = new SpeechRecognitionAPI();
       recognitionRef.current.continuous = true;
       recognitionRef.current.interimResults = true;
       recognitionRef.current.lang = 'hi-IN';
@@ -119,7 +128,6 @@ export default function App() {
     const systemPrompt = scenarios[scenario].prompt;
     
     try {
-      // Forcing the ultra-stable gemini-2.5-flash model to bypass server congestion
       const response = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=" + apiKey, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

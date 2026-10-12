@@ -119,7 +119,8 @@ export default function App() {
     const systemPrompt = scenarios[scenario].prompt;
     
     try {
-      const response = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=" + apiKey, {
+      // Bypassing the traffic jam by routing to the Gemini 3.5 Flash endpoint
+      const response = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=" + apiKey, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -132,4 +133,104 @@ export default function App() {
       const data = await response.json();
       
       if (!response.ok) {
-        throw new Error(data.error?.message || "API Key restricted or
+        throw new Error(data.error?.message || "API Key restricted or invalid.");
+      }
+      
+      const aiText = data.candidates[0].content.parts[0].text;
+      
+      setMessages(prev => {
+        const newMessages = [...prev, { sender: 'AI', text: aiText }];
+        return newMessages as Message[];
+      });
+
+      if (autoSpeak) {
+        speakText(aiText);
+      }
+      
+    } catch (error) {
+      const e = error as Error;
+      setMessages(prev => [...prev, { sender: 'AI', text: "Google API Error: " + e.message }]);
+    }
+    setIsLoading(false);
+  };
+
+  const handleSend = async () => {
+    if (inputText.trim() === '') return;
+    
+    if (isListening) {
+      recognitionRef.current?.stop();
+      setIsListening(false);
+    }
+    
+    const userText = inputText;
+    setMessages(prev => [...prev, { sender: 'You', text: userText }]);
+    setInputText('');
+    
+    await generateAIResponse(userText);
+  };
+
+  if (!isKeySet) {
+    return (
+      <div className="min-h-screen bg-orange-50 flex items-center justify-center p-6">
+        <div className="bg-white p-8 rounded-2xl shadow-sm border border-orange-100 max-w-md w-full">
+          <h1 className="text-2xl font-bold text-orange-800 mb-4">Unlock the AI Brain 🧠</h1>
+          <p className="text-gray-600 mb-6 text-sm">To make the conversations dynamic, you need a free Google Gemini API key. This acts as the engine for the app.</p>
+          <input 
+            type="password"
+            value={apiKey}
+            onChange={(e) => setApiKey(e.target.value)}
+            placeholder="Paste API Key here..."
+            className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:outline-none focus:border-orange-500 mb-4"
+          />
+          <button 
+            onClick={saveKey}
+            className="w-full bg-orange-600 hover:bg-orange-700 text-white px-6 py-3 rounded-xl font-bold transition-colors"
+          >
+            Start App
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-orange-50 font-sans p-4 md:p-8">
+      <div className="max-w-3xl mx-auto flex flex-col h-[90vh]">
+        
+        {/* Header & Scenarios */}
+        <div className="bg-white p-6 rounded-t-2xl shadow-sm border border-orange-100 z-10">
+          <div className="flex justify-between items-center mb-4">
+            <h1 className="text-2xl font-bold text-orange-800">Kahaani 💬</h1>
+            <button onClick={clearKey} className="text-xs font-bold text-gray-400 hover:text-orange-600 underline">
+              Reset API Key
+            </button>
+          </div>
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            <div className="flex gap-2 overflow-x-auto pb-2 w-full md:w-auto">
+              {Object.keys(scenarios).map(scen => (
+                <button 
+                  key={scen}
+                  onClick={() => changeScenario(scen)}
+                  className={`whitespace-nowrap px-4 py-2 rounded-full text-sm font-medium transition-colors ${scenario === scen ? 'bg-orange-500 text-white' : 'bg-orange-100 text-orange-800 hover:bg-orange-200'}`}
+                >
+                  {scenarios[scen].title}
+                </button>
+              ))}
+            </div>
+            
+            <label className="flex items-center gap-2 text-sm text-gray-700 font-bold cursor-pointer bg-orange-50 px-3 py-2 rounded-lg border border-orange-200">
+              <input 
+                type="checkbox" 
+                checked={autoSpeak}
+                onChange={(e) => setAutoSpeak(e.target.checked)}
+                className="accent-orange-600 w-4 h-4 cursor-pointer"
+              />
+              Auto-Speak
+            </label>
+          </div>
+        </div>
+
+        {/* Chat History Area */}
+        <div className="flex-1 bg-gray-50 p-6 overflow-y-auto border-x border-orange-100 flex flex-col gap-4">
+          {messages.map((msg, idx) => (
+            <div key={idx} className={

@@ -152,12 +152,13 @@ export default function App() {
     }
   };
 
-  const generateAIResponse = async (userText: string) => {
+    const generateAIResponse = async (userText: string) => {
     setIsLoading(true);
     const systemPrompt = scenarios[scenario].prompt;
     
     try {
-      const response = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=" + apiKey, {
+      // Swapped to the Lite model for massive free-tier quotas
+      const response = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-lite-latest:generateContent?key=" + apiKey, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -190,6 +191,7 @@ export default function App() {
     }
     setIsLoading(false);
   };
+
 
   const handleSend = async () => {
     if (inputText.trim() === '') return;

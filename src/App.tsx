@@ -60,7 +60,7 @@ export default function App() {
     setMessages([{ sender: 'AI', text: scenarios[newScenario].greeting }]);
   };
 
-  const generateAIResponse = async (userText: string) => {
+    const generateAIResponse = async (userText: string) => {
     setIsLoading(true);
     const systemPrompt = scenarios[scenario].prompt;
     
@@ -76,15 +76,21 @@ export default function App() {
       });
       
       const data = await response.json();
-      if (data.error) throw new Error(data.error.message);
+      
+      // This will catch the exact error Google sends back
+      if (!response.ok) {
+        throw new Error(data.error?.message || `HTTP Error ${response.status}`);
+      }
       
       const aiText = data.candidates[0].content.parts[0].text;
       setMessages(prev => [...prev, { sender: 'AI', text: aiText }]);
-    } catch (error) {
-      setMessages(prev => [...prev, { sender: 'AI', text: 'Arre yaar, connection fail ho gaya. (Oops, connection failed. Check your API key.)' }]);
+    } catch (error: any) {
+      // This prints the actual error message to the chat screen
+      setMessages(prev => [...prev, { sender: 'AI', text: `Google API Error: ${error.message}` }]);
     }
     setIsLoading(false);
   };
+
 
   const handleSend = async () => {
     if (inputText.trim() === '') return;

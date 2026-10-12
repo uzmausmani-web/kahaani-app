@@ -27,26 +27,26 @@ export default function App() {
   const recognitionRef = useRef<any>(null);
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
 
+  // NEW: Updated prompts to force a hidden Devanagari script for the voice engine
   const scenarios: Record<string, { title: string, greeting: string, prompt: string }> = {
     Grandparents: {
       title: 'Dada/Dadi 👵🏽👴🏽',
-      greeting: 'Beta, aaj ka din kaisa tha? (How was your day today?)',
-      prompt: 'You are a loving Indian grandparent talking to your American teen grandchild. Speak in natural Hinglish (mix of Hindi/Urdu/English). Keep responses to 1-2 friendly sentences. Always include the English translation in parentheses at the end.'
+      greeting: 'बेटा, आज का दिन कैसा था? | Beta, aaj ka din kaisa tha? | (How was your day today?)',
+      prompt: 'You are a loving Indian grandparent talking to your American teen grandchild. Keep responses to 1-2 friendly sentences. You MUST format your exact response like this: [Devanagari script] | [Hinglish script] | (English translation)'
     },
     Cousin: {
       title: 'Cousin in Delhi 📱',
-      greeting: 'Aur bata, kya chal raha hai aaj kal? (Tell me, what is up these days?)',
-      prompt: 'You are a cool, 20-something cousin living in Delhi chatting on WhatsApp with your American cousin. Use modern Hinglish slang. Keep it casual, 1-2 sentences. Always include the English translation in parentheses at the end.'
+      greeting: 'और बता, क्या चल रहा है आज कल? | Aur bata, kya chal raha hai aaj kal? | (Tell me, what is up these days?)',
+      prompt: 'You are a cool, 20-something cousin living in Delhi chatting on WhatsApp with your American cousin. Use modern slang. Keep it casual, 1-2 sentences. You MUST format your exact response like this: [Devanagari script] | [Hinglish script] | (English translation)'
     },
     Shopkeeper: {
       title: 'Street Vendor 🛒',
-      greeting: 'Aaiye aaiye! Boliye kya chahiye aapko? (Come in! Tell me, what do you need?)',
-      prompt: 'You are a busy but polite street vendor or shopkeeper in North India. The user is a customer. Speak in everyday Hinglish. Keep it to 1-2 sentences. Always include the English translation in parentheses at the end.'
+      greeting: 'आइए आइए! बोलिए क्या चाहिए आपको? | Aaiye aaiye! Boliye kya chahiye aapko? | (Come in! Tell me, what do you need?)',
+      prompt: 'You are a busy but polite street vendor or shopkeeper in North India. Speak to the customer. Keep it to 1-2 sentences. You MUST format your exact response like this: [Devanagari script] | [Hinglish script] | (English translation)'
     }
   };
 
   useEffect(() => {
-    // NEW: Force the browser to preload its premium voice library in the background
     window.speechSynthesis.getVoices();
     window.speechSynthesis.onvoiceschanged = () => {
       window.speechSynthesis.getVoices();
@@ -109,21 +109,30 @@ export default function App() {
     setMessages([{ sender: 'AI', text: scenarios[newScenario].greeting }]);
   };
 
+  // NEW: Helper to extract only the Hinglish and English for the screen
+  const getDisplayText = (text: string) => {
+    const parts = text.split('|');
+    if (parts.length >= 2) {
+      return `${parts[1].trim()} ${parts[2] ? parts[2].trim() : ''}`;
+    }
+    return text;
+  };
+
   const speakText = (text: string) => {
     window.speechSynthesis.cancel(); 
     
-    const hindiPart = text.replace(/\(.*\)/g, '').trim();
+    // NEW: Extract ONLY the Devanagari script (before the first pipe) for the voice engine
+    const parts = text.split('|');
+    const hindiPart = parts.length > 1 ? parts[0].trim() : text.replace(/\(.*\)/g, '').trim();
+    
     const utterance = new SpeechSynthesisUtterance(hindiPart);
     utterance.lang = 'hi-IN'; 
-    // SLIGHTLY SLOWER: Helps the accent sound much more natural and understandable
     utterance.rate = 0.85; 
     
-    // NEW: Hunt for the absolute best Hindi voice on the device
     const voices = window.speechSynthesis.getVoices();
     const hindiVoices = voices.filter(voice => voice.lang.includes('hi-IN') || voice.lang.includes('hi'));
     
     if (hindiVoices.length > 0) {
-      // Look for Apple/Google's premium named voices first, otherwise use the top Hindi result
       const premiumVoice = hindiVoices.find(v => v.name.includes('Premium') || v.name.includes('Lekha') || v.name.includes('Rishi'));
       utterance.voice = premiumVoice || hindiVoices[0];
     }
@@ -265,7 +274,8 @@ export default function App() {
               <div className="flex justify-between items-start gap-4">
                 <div>
                   <p className="text-xs opacity-75 mb-1 font-bold">{msg.sender === 'AI' ? scenarios[scenario].title.split(' ')[0] : 'You'}</p>
-                  <p className="leading-relaxed">{msg.text}</p>
+                  {/* NEW: Display only the clean Hinglish/English text on screen */}
+                  <p className="leading-relaxed">{msg.sender === 'AI' ? getDisplayText(msg.text) : msg.text}</p>
                 </div>
                 {msg.sender === 'AI' && !msg.text.includes('Google API Error') && (
                   <button 

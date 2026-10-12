@@ -60,7 +60,7 @@ export default function App() {
     setMessages([{ sender: 'AI', text: scenarios[newScenario].greeting }]);
   };
 
-        const generateAIResponse = async (userText: string) => {
+          const generateAIResponse = async (userText: string) => {
     setIsLoading(true);
     
     try {
@@ -84,6 +84,7 @@ export default function App() {
     }
     setIsLoading(false);
   };
+
 
 
 

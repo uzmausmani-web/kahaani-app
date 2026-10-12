@@ -1,6 +1,5 @@
 import { useState, ChangeEvent, KeyboardEvent, useRef, useEffect } from 'react';
 
-// This explicitly tells Vercel's strict TypeScript checker to allow the Speech API
 declare global {
   interface Window {
     SpeechRecognition: any;
@@ -26,8 +25,7 @@ export default function App() {
   const chatEndRef = useRef<HTMLDivElement>(null);
   
   const recognitionRef = useRef<any>(null);
-  // NEW: This traps the speech object so Safari can't delete it and cause a loop
-  const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null); 
+  const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
 
   const scenarios: Record<string, { title: string, greeting: string, prompt: string }> = {
     Grandparents: {
@@ -48,6 +46,12 @@ export default function App() {
   };
 
   useEffect(() => {
+    // NEW: Force the browser to preload its premium voice library in the background
+    window.speechSynthesis.getVoices();
+    window.speechSynthesis.onvoiceschanged = () => {
+      window.speechSynthesis.getVoices();
+    };
+
     const savedKey = localStorage.getItem('gemini_key');
     if (savedKey) {
       setApiKey(savedKey);
@@ -106,17 +110,25 @@ export default function App() {
   };
 
   const speakText = (text: string) => {
-    // NEW: Explicitly wipe the browser's audio queue before starting a new sentence
     window.speechSynthesis.cancel(); 
     
     const hindiPart = text.replace(/\(.*\)/g, '').trim();
     const utterance = new SpeechSynthesisUtterance(hindiPart);
     utterance.lang = 'hi-IN'; 
-    utterance.rate = 0.9; 
+    // SLIGHTLY SLOWER: Helps the accent sound much more natural and understandable
+    utterance.rate = 0.85; 
     
-    // NEW: Save it to our ref to prevent the iOS memory leak loop
+    // NEW: Hunt for the absolute best Hindi voice on the device
+    const voices = window.speechSynthesis.getVoices();
+    const hindiVoices = voices.filter(voice => voice.lang.includes('hi-IN') || voice.lang.includes('hi'));
+    
+    if (hindiVoices.length > 0) {
+      // Look for Apple/Google's premium named voices first, otherwise use the top Hindi result
+      const premiumVoice = hindiVoices.find(v => v.name.includes('Premium') || v.name.includes('Lekha') || v.name.includes('Rishi'));
+      utterance.voice = premiumVoice || hindiVoices[0];
+    }
+    
     utteranceRef.current = utterance; 
-    
     window.speechSynthesis.speak(utterance);
   };
 

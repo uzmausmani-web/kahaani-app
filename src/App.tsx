@@ -60,31 +60,35 @@ export default function App() {
     setMessages([{ sender: 'AI', text: scenarios[newScenario].greeting }]);
   };
 
-          const generateAIResponse = async (userText: string) => {
+            const generateAIResponse = async (userText: string) => {
     setIsLoading(true);
+    const systemPrompt = scenarios[scenario].prompt;
     
     try {
-      // Calling the exact diagnostic tool Google requested
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [
+            { role: 'user', parts: [{ text: `${systemPrompt}\n\nUser says: ${userText}` }] }
+          ]
+        })
+      });
+      
       const data = await response.json();
       
       if (!response.ok) {
-        throw new Error(data.error?.message || `HTTP Error ${response.status}`);
+        throw new Error(data.error?.message || "API Key restricted or invalid.");
       }
       
-      // Extract the names of all models your key can access
-      const availableModels = data.models
-        .filter((m: any) => m.supportedGenerationMethods?.includes('generateContent'))
-        .map((m: any) => m.name.replace('models/', ''))
-        .join(', ');
-        
-      setMessages(prev => [...prev, { sender: 'AI', text: `Your key has access to: ${availableModels}` }]);
-    } catch (error: any) {
-      setMessages(prev => [...prev, { sender: 'AI', text: `Diagnostic Error: ${error.message}` }]);
+      const aiText = data.candidates[0].content.parts[0].text;
+      setMessages(prev => [...prev, { sender: 'AI', text: aiText }]);
+    } catch (error) {
+      const e = error as Error;
+      setMessages(prev => [...prev, { sender: 'AI', text: `Google API Error: ${e.message}` }]);
     }
     setIsLoading(false);
   };
-
 
 
 

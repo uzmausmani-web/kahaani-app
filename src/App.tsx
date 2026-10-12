@@ -31,18 +31,17 @@ export default function App() {
   const recognitionRef = useRef<any>(null);
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
 
-  // NEW: Added Salaam and Adaab greetings to the rotation, blending Hindi and Urdu naturally
   const scenarios: Record<string, { title: string, greetings: string[], prompt: string }> = {
     Grandparents: {
       title: 'Dada/Dadi 👵🏽👴🏽',
       greetings: [
         'बेटा, आज का दिन कैसा था? | Beta, aaj ka din kaisa tha? | (How was your day today?)',
-        'अस्सलाम वालेकुम बेटा, कैसे हो? | Assalamualaikum beta, kaise ho? | (Peace be upon you child, how are you?)',
         'खाना खा लिया तुमने? | Khaana khaa liya tumne? | (Did you eat your food?)',
+        'क्या कर रहे हो, बेटा? | Kya kar rahe ho, beta? | (What are you doing, child?)',
         'सुना है तुम रोबोटिक्स में बहुत अच्छा कर रही हो! | Suna hai tum robotics mein bahut achcha kar rahi ho! | (I heard you are doing very well in robotics!)',
         'आज स्कूल में क्या हुआ? | Aaj school mein kya hua? | (What happened in school today?)'
       ],
-      prompt: 'You are a loving Indian grandparent talking to your American teen grandchild. Keep replies to 1-2 friendly, warm sentences.'
+      prompt: 'You are a loving Indian grandparent talking to your American teen grandchild. Keep replies to 1-2 friendly, warm sentences. Focus on affection (using terms like Beta). Do NOT use religious greetings.'
     },
     Cousin: {
       title: 'Cousin in Delhi 📱',
@@ -192,7 +191,7 @@ Current Scenario: ${currentScenarioName}
 
 Task 1: USER TRANSLATION (CRITICAL INSTRUCTION)
 Translate the user's input into natural, everyday spoken Hinglish. DO NOT translate literally.
-Reflect a natural North Indian vocabulary that freely mixes Hindi and Urdu (e.g., using "Salaam", "Adaab", "Shukriya", "Badi meherbani" alongside traditional Hindi).
+Reflect a natural North Indian vocabulary that freely mixes Hindi and Urdu (e.g., using "Shukriya", "Badi meherbani" alongside traditional Hindi). 
 
 CRITICAL TONE ADJUSTMENT: You MUST adjust pronouns and verb endings based on the Current Scenario:
 - If talking to Grandparents: Use respectful "Aap" and formal verbs (e.g., "Aap kaise hain?", "Aur aap bataiye", "Kya main aa sakti hoon?"). NEVER use "Tu" or "Tum".
@@ -200,7 +199,7 @@ CRITICAL TONE ADJUSTMENT: You MUST adjust pronouns and verb endings based on the
 - If talking to Street Vendor: Use polite "Bhaiya" / "Aap" (e.g., "Bhaiya, kitne ka hai?", "Aap mujhe yeh de dijiye").
 
 Task 2: PERSONA REPLY
-Respond in character to the user's message, maintaining the appropriate mix of cultural greetings.
+Respond in character to the user's message, maintaining the appropriate conversational tone.
 
 Return ONLY valid JSON in this exact structure with no Markdown wrapping:
 {

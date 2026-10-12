@@ -26,6 +26,8 @@ export default function App() {
   const chatEndRef = useRef<HTMLDivElement>(null);
   
   const recognitionRef = useRef<any>(null);
+  // NEW: This traps the speech object so Safari can't delete it and cause a loop
+  const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null); 
 
   const scenarios: Record<string, { title: string, greeting: string, prompt: string }> = {
     Grandparents: {
@@ -53,7 +55,6 @@ export default function App() {
       setMessages([{ sender: 'AI', text: scenarios['Grandparents'].greeting }]);
     }
     
-    // Using the safely declared global window properties
     const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (SpeechRecognitionAPI) {
       recognitionRef.current = new SpeechRecognitionAPI();
@@ -105,10 +106,17 @@ export default function App() {
   };
 
   const speakText = (text: string) => {
+    // NEW: Explicitly wipe the browser's audio queue before starting a new sentence
+    window.speechSynthesis.cancel(); 
+    
     const hindiPart = text.replace(/\(.*\)/g, '').trim();
     const utterance = new SpeechSynthesisUtterance(hindiPart);
     utterance.lang = 'hi-IN'; 
     utterance.rate = 0.9; 
+    
+    // NEW: Save it to our ref to prevent the iOS memory leak loop
+    utteranceRef.current = utterance; 
+    
     window.speechSynthesis.speak(utterance);
   };
 
@@ -128,7 +136,6 @@ export default function App() {
     const systemPrompt = scenarios[scenario].prompt;
     
     try {
-      // Using the exact 3.8-flash model requested by the Google API
       const response = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=" + apiKey, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

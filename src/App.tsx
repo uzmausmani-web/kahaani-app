@@ -31,7 +31,6 @@ export default function App() {
   const recognitionRef = useRef<any>(null);
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
 
-  // NEW: Converted single greetings into an array of rotating conversation starters
   const scenarios: Record<string, { title: string, greetings: string[], prompt: string }> = {
     Grandparents: {
       title: 'Dada/Dadi 👵🏽👴🏽',
@@ -67,7 +66,6 @@ export default function App() {
     }
   };
 
-  // Helper to pick a random greeting
   const getRandomGreeting = (scenKey: string) => {
     const greets = scenarios[scenKey].greetings;
     return greets[Math.floor(Math.random() * greets.length)];
@@ -83,7 +81,6 @@ export default function App() {
     if (savedKey) {
       setApiKey(savedKey);
       setIsKeySet(true);
-      // Initialize with a random greeting
       setMessages([{ sender: 'AI', text: getRandomGreeting('Grandparents') }]);
     }
     
@@ -134,7 +131,6 @@ export default function App() {
 
   const changeScenario = (newScenario: string) => {
     setScenario(newScenario);
-    // Fetch a fresh greeting when swapping personas
     setMessages([{ sender: 'AI', text: getRandomGreeting(newScenario) }]);
   };
 
@@ -184,32 +180,30 @@ export default function App() {
   const generateAIResponse = async (userText: string) => {
     setIsLoading(true);
     const personaPrompt = scenarios[scenario].prompt;
+    const currentScenarioName = scenarios[scenario].title;
     
+    // NEW: Taught the AI how to adjust respect levels (Aap/Tum/Tu) based on who it's translating for
     const structuredPrompt = `
 You are the core language engine of "Kahaani", a coaching app helping an Indian-American teenager learn natural North Indian spoken Hinglish.
 The user just sent this message: "${userText}"
 
 Role for Reply: ${personaPrompt}
+Current Scenario: ${currentScenarioName}
 
 Task 1: USER TRANSLATION (CRITICAL INSTRUCTION)
-Translate the user's input into natural, everyday spoken Hinglish.
-DO NOT translate literally word-for-word. Capture the actual spoken meaning and conversational phrasing.
-EXAMPLES OF BAD LITERAL VS GOOD NATURAL:
-- Bad Literal: "I am hungry" -> "Main bhookha hoon"
-- Good Natural: "I am hungry" -> "Mujhe bahut bhookh lagi hai" OR "Pet mein choohe kood rahe hain"
-- Bad Literal: "What's up?" -> "Kya upar hai?"
-- Good Natural: "What's up?" -> "Aur batao, kya chal raha hai?"
-- Bad Literal: "This is cool" -> "Yeh thanda hai"
-- Good Natural: "This is cool" -> "Sahi hai yaar" OR "Badiya hai"
-- Bad Literal: "I don't know" -> "Main nahi jaanta"
-- Good Natural: "I don't know" -> "Mujhe nahi pata"
+Translate the user's input into natural, everyday spoken Hinglish. DO NOT translate literally.
+
+CRITICAL TONE ADJUSTMENT: You MUST adjust pronouns and verb endings based on the Current Scenario:
+- If talking to Grandparents: Use respectful "Aap" and formal verbs (e.g., "Aap kaise hain?", "Aur aap bataiye", "Kya main aa sakti hoon?"). NEVER use "Tu" or "Tum".
+- If talking to Cousin: Use casual "Tum" or "Tu" and informal verbs (e.g., "Kaisa hai?", "Aur bata", "Kya scene hai?"). NEVER use "Aap".
+- If talking to Street Vendor: Use polite "Bhaiya" / "Aap" (e.g., "Bhaiya, kitne ka hai?", "Aap mujhe yeh de dijiye").
 
 Task 2: PERSONA REPLY
 Respond in character to the user's message.
 
 Return ONLY valid JSON in this exact structure with no Markdown wrapping:
 {
-  "userHinglish": "Natural, spoken Hinglish version of user input",
+  "userHinglish": "Natural Hinglish version of user input (applying the correct Aap/Tum tone rules)",
   "userDevanagari": "देवनागरी script of the natural user input",
   "replyDevanagari": "देवनागरी script of reply",
   "replyHinglish": "Hinglish transliteration of reply",

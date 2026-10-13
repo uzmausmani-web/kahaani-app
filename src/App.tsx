@@ -62,7 +62,7 @@ export default function App() {
         'बेटा, आज का दिन कैसा था? | Beta, aaj ka din kaisa tha? | (How was your day today?)',
         'सुना है तुम रोबोटिक्स में बहुत अच्छा कर रही हो! | Suna hai tum robotics mein bahut achcha kar rahi ho! | (I heard you are doing very well in robotics!)'
       ],
-      prompt: 'You are a loving Indian grandparent talking to your teen grandchild. Keep replies to 1-2 friendly, warm sentences. Focus on affection (using terms like Beta). Do NOT use religious greetings.'
+      prompt: 'You are a loving Indian grandparent. Use Aap for yourself/them. NO religious greetings.'
     },
     Cousin: {
       title: 'Cousin in Delhi 📱',
@@ -78,7 +78,7 @@ export default function App() {
         'और बता, क्या चल रहा है आज कल? | Aur bata, kya chal raha hai aaj kal? | (Tell me, what is up these days?)',
         'कोई नई फनी रील देखी? | Koi nayi funny reel dekhi? | (Did you see any new funny reel?)'
       ],
-      prompt: 'You are a cool, 20-something cousin living in Delhi chatting on WhatsApp with your American cousin. Keep it casual and conversational, 1-2 sentences.'
+      prompt: 'You are a cool 20-something cousin in Delhi. Use Tum/Tu.'
     },
     Shopkeeper: {
       title: 'Street Vendor 🛒',
@@ -94,9 +94,13 @@ export default function App() {
         'आइए आइए! बोलिए क्या चाहिए आपको? | Aaiye aaiye! Boliye kya chahiye aapko? | (Come in! Tell me, what do you need?)',
         'अस्सलाम वालेकुम जी, बताइए। | Assalamualaikum ji, bataiye. | (Peace be upon you, tell me.)'
       ],
-      prompt: 'You are a busy but polite street vendor or shopkeeper in North India chatting with a young customer. Keep it to 1-2 sentences.'
+      prompt: 'You are a busy North Indian street vendor. Polite but firm.'
     }
   };
+
+  // NEW: Dynamic state for the Blueprint
+  const [dynamicBlueprint, setDynamicBlueprint] = useState(scenarios['Grandparents'].grammarTemplate);
+  const [dynamicBlueprintEnglish, setDynamicBlueprintEnglish] = useState(scenarios['Grandparents'].grammarEnglish);
 
   const getRandomGreeting = (scenKey: string) => {
     const greets = scenarios[scenKey].greetings;
@@ -140,7 +144,7 @@ export default function App() {
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, statusMessage]);
+  }, [messages, statusMessage, isLoading]);
 
   const saveKey = () => {
     if (apiKey.trim().length > 10) {
@@ -152,6 +156,9 @@ export default function App() {
 
   const changeScenario = (newScenario: string) => {
     setScenario(newScenario);
+    // Reset blueprint to the default for the new scenario
+    setDynamicBlueprint(scenarios[newScenario].grammarTemplate);
+    setDynamicBlueprintEnglish(scenarios[newScenario].grammarEnglish);
     setMessages([{ sender: 'AI', text: getRandomGreeting(newScenario) }]);
   };
 
@@ -245,35 +252,28 @@ export default function App() {
     else if (!isEnglish) setXp(prev => prev + 10 + bonusXp); 
     else setXp(prev => prev + 2 + bonusXp); 
     
-    const personaPrompt = scenarios[scenario].prompt;
-    const currentScenarioName = scenarios[scenario].title;
-    
+    // NEW: Instruct the AI to generate a dynamic nextBlueprint for the user
     const structuredPrompt = `
-You are the core language engine of "Kahaani", a coaching app helping an Indian-American teenager learn natural North Indian spoken Hinglish.
-The user just sent this message: "${userText}"
+Role: ${scenarios[scenario].prompt}
+User: "${userText}"
 
-Role for Reply: ${personaPrompt}
-Current Scenario: ${currentScenarioName}
+RULES: 
+1. Reply naturally in character in ONE short sentence. 
+2. Provide a "nextBlueprint" (a Hinglish sentence frame using [ blank ] brackets) predicting how the user might reply to your message.
+3. Provide "nextBlueprintEnglish" (its translation).
 
-Task 1: USER TRANSLATION
-Translate the user's input into natural, everyday spoken Hinglish. 
-CRITICAL: Adjust pronouns and verbs based on the Scenario (Grandparents = Aap, Cousin = Tum/Tu, Shopkeeper = Aap/Bhaiya).
-
-Task 2: PERSONA REPLY
-Respond in character. Ensure the reply keeps the conversation flowing based on the active mission.
-
-Return ONLY valid JSON:
+Return strictly this JSON:
 {
-  "userHinglish": "Natural Hinglish version of user input",
-  "userDevanagari": "देवनागरी script of the natural user input",
-  "replyDevanagari": "देवनागरी script of reply",
-  "replyHinglish": "Hinglish transliteration of reply",
-  "replyEnglish": "English translation of reply"
-}
-`;
+  "userHinglish": "User text translated to natural Hinglish",
+  "userDevanagari": "User text translated to Devanagari",
+  "replyDevanagari": "Your reply in Devanagari",
+  "replyHinglish": "Your reply in Hinglish",
+  "replyEnglish": "Your reply in English",
+  "nextBlueprint": "e.g., Mujhe lagta hai ki [ subject ] bahut [ adjective ] hai.",
+  "nextBlueprintEnglish": "e.g., I think that [ subject ] is very [ adjective ]."
+}`;
 
     try {
-      // Reverted back to flash-lite-latest but kept the JSON lock
       const response = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-lite-latest:generateContent?key=" + apiKey, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -308,6 +308,12 @@ Return ONLY valid JSON:
         updated.push({ sender: 'AI', text: aiFormattedMessage });
         return updated;
       });
+
+      // Update the UI blueprint to match the new AI suggestion
+      if (parsed.nextBlueprint && parsed.nextBlueprintEnglish) {
+        setDynamicBlueprint(parsed.nextBlueprint);
+        setDynamicBlueprintEnglish(parsed.nextBlueprintEnglish);
+      }
 
       if (autoSpeak) speakText(parsed.replyDevanagari);
       
@@ -408,7 +414,6 @@ Return ONLY valid JSON:
             </div>
           </div>
           
-          {/* Persona Selector */}
           <div className="flex gap-3 overflow-x-auto pb-2 w-full no-scrollbar">
             {Object.keys(scenarios).map(scen => (
               <button 
@@ -421,7 +426,6 @@ Return ONLY valid JSON:
             ))}
           </div>
 
-          {/* Mission Card */}
           <div className="mt-4 bg-emerald-300 border-4 border-slate-900 rounded-2xl p-4 shadow-[4px_4px_0px_0px_rgba(15,23,42,1)] relative">
             <div className="absolute -top-3 -right-3 bg-white border-2 border-slate-900 rounded-full w-8 h-8 flex items-center justify-center font-black shadow-[2px_2px_0px_0px_rgba(15,23,42,1)]">🎯</div>
             <p className="text-[10px] font-black text-slate-900 uppercase tracking-widest mb-1">Current Mission</p>
@@ -441,30 +445,25 @@ Return ONLY valid JSON:
           </div>
         </div>
 
-        {/* Floating Status Notification */}
         {statusMessage && (
           <div className="absolute top-[320px] left-1/2 -translate-x-1/2 bg-yellow-300 border-4 border-slate-900 text-slate-900 font-black px-6 py-3 rounded-full text-md shadow-[4px_4px_0px_0px_rgba(15,23,42,1)] animate-bounce z-50">
             {statusMessage}
           </div>
         )}
 
-        {/* Chat Stream */}
         <div className="flex-1 p-4 overflow-y-auto flex flex-col gap-6 no-scrollbar pb-10">
           {messages.map((msg, idx) => (
             <div key={idx} className={`max-w-[85%] relative ${msg.sender === 'You' ? 'self-end' : 'self-start'}`}>
               
-              {/* Main Bubble */}
               <div className={`p-4 rounded-2xl border-4 border-slate-900 shadow-[4px_4px_0px_0px_rgba(15,23,42,1)] ${msg.sender === 'You' ? 'bg-violet-500 text-white rounded-tr-none' : 'bg-white text-slate-900 rounded-tl-none'}`}>
                 <p className="text-[10px] opacity-60 mb-1 font-black uppercase tracking-widest">{msg.sender === 'AI' ? scenarios[scenario].title.split(' ')[0] : 'YOU'}</p>
                 <p className="leading-relaxed font-bold text-[15px]">{msg.sender === 'AI' ? getDisplayText(msg.text) : msg.text}</p>
                 
-                {/* AI Audio Button */}
                 {msg.sender === 'AI' && !msg.text.includes('Google API Error') && (
                   <button onClick={() => speakText(msg.text)} className="absolute -left-3 -bottom-3 w-10 h-10 rounded-full bg-yellow-300 border-2 border-slate-900 text-slate-900 hover:bg-yellow-400 transition-colors shadow-[2px_2px_0px_0px_rgba(15,23,42,1)] flex items-center justify-center font-black">🔊</button>
                 )}
               </div>
 
-              {/* Secret Learning Card */}
               {msg.hinglishHelp && (
                 <div className="mt-2 bg-slate-900 p-4 rounded-xl border-4 border-slate-900 shadow-[4px_4px_0px_0px_rgba(139,92,246,1)] w-[110%] relative right-[10%]">
                   <div className="flex justify-between items-center mb-2">
@@ -487,32 +486,29 @@ Return ONLY valid JSON:
           ))}
 
           {isLoading && (
-            <div className="bg-white border-4 border-slate-900 shadow-[4px_4px_0px_0px_rgba(15,23,42,1)] self-start p-4 rounded-2xl rounded-tl-none">
-              <div className="flex gap-1 items-center">
-                <span className="w-3 h-3 bg-violet-500 rounded-full animate-bounce"></span>
-                <span className="w-3 h-3 bg-violet-500 rounded-full animate-bounce delay-75"></span>
-                <span className="w-3 h-3 bg-violet-500 rounded-full animate-bounce delay-150"></span>
+            <div className="bg-white border-4 border-slate-900 shadow-[4px_4px_0px_0px_rgba(15,23,42,1)] self-start p-3 rounded-2xl rounded-tl-none w-48 relative">
+              <div className="text-[10px] font-black text-slate-900 uppercase tracking-widest mb-2 animate-pulse">Translating...</div>
+              <div className="w-full h-3 bg-slate-200 rounded-full overflow-hidden border-2 border-slate-900 flex">
+                <div className="h-full bg-violet-500 w-full animate-[pulse_1s_ease-in-out_infinite]"></div>
               </div>
             </div>
           )}
           <div ref={chatEndRef} />
         </div>
 
-        {/* Lower Command Deck */}
         <div className="bg-white border-t-4 border-slate-900 flex flex-col z-10 relative p-4 gap-4 shadow-[0px_-4px_0px_0px_rgba(15,23,42,0.05)]">
           
-          {/* Blueprint Header */}
+          {/* NOW USING DYNAMIC BLUEPRINT STATE */}
           <div className="bg-sky-200 border-4 border-slate-900 rounded-xl p-3 shadow-[4px_4px_0px_0px_rgba(15,23,42,1)] flex gap-3 items-start">
              <span className="text-2xl bg-white rounded-full w-8 h-8 flex items-center justify-center border-2 border-slate-900 shadow-[2px_2px_0px_0px_rgba(15,23,42,1)] shrink-0 mt-1">💡</span>
              <div className="flex-1">
                 <p className="text-[10px] font-black text-slate-900 uppercase tracking-widest mb-0.5">Blueprint</p>
-                <p className="text-xs font-bold text-slate-800 leading-tight mb-1">{scenarios[scenario].grammarTemplate}</p>
-                <p className="text-[10px] font-bold text-slate-600 leading-tight italic border-t border-slate-900/10 pt-1">Meaning: {scenarios[scenario].grammarEnglish}</p>
+                <p className="text-xs font-bold text-slate-800 leading-tight mb-1">{dynamicBlueprint}</p>
+                <p className="text-[10px] font-bold text-slate-600 leading-tight italic border-t border-slate-900/10 pt-1">Meaning: {dynamicBlueprintEnglish}</p>
              </div>
           </div>
 
           <div className="flex flex-col gap-3">
-            {/* Legend & Toggles */}
             <div className="flex justify-between items-center px-1">
                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1">
                  <span className="text-emerald-500">+10 XP</span> Text <span className="text-violet-500 ml-2">+20 XP</span> Voice
@@ -523,7 +519,6 @@ Return ONLY valid JSON:
                 </label>
             </div>
             
-            {/* Input Row */}
             <div className="flex gap-2">
               {recognitionRef.current && (
                 <button 

@@ -47,7 +47,8 @@ export default function App() {
   const practiceRecRef = useRef<any>(null);
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
 
-  const scenarios: Record<string, { title: string, mission: string, vocab: VocabWord[], grammarTemplate: string, greetings: string[], prompt: string }> = {
+  // NEW: Added grammarEnglish to show the meaning of the blueprint
+  const scenarios: Record<string, { title: string, mission: string, vocab: VocabWord[], grammarTemplate: string, grammarEnglish: string, greetings: string[], prompt: string }> = {
     Grandparents: {
       title: 'Dada/Dadi 👵🏽👴🏽',
       mission: 'Tell them about your robotics team and how hard you are working on a project.',
@@ -57,6 +58,7 @@ export default function App() {
         { hinglish: 'Koshish', english: 'Attempt/Effort', devanagari: 'कोशिश' }
       ],
       grammarTemplate: '"Main ek robot [ build ] ki [ attempt ] kar rahi hoon, ismein bahut [ hard work ] lag rahi hai."',
+      grammarEnglish: '"I am making an [ attempt ] to [ build ] a robot, it requires a lot of [ hard work ]."',
       greetings: [
         'बेटा, आज का दिन कैसा था? | Beta, aaj ka din kaisa tha? | (How was your day today?)',
         'सुना है तुम रोबोटिक्स में बहुत अच्छा कर रही हो! | Suna hai tum robotics mein bahut achcha kar rahi ho! | (I heard you are doing very well in robotics!)'
@@ -72,6 +74,7 @@ export default function App() {
         { hinglish: 'Pareshani', english: 'Trouble/Problem', devanagari: 'परेशानी' }
       ],
       grammarTemplate: '"Yeh homework bahut [ useless/boring ] hai, aur roz nayi [ trouble/problem ] hoti hai. Tum koi [ great/good ] show dekh rahe ho?"',
+      grammarEnglish: '"This homework is very [ useless/boring ], and every day there is a new [ trouble/problem ]. Are you watching any [ great/good ] show?"',
       greetings: [
         'और बता, क्या चल रहा है आज कल? | Aur bata, kya chal raha hai aaj kal? | (Tell me, what is up these days?)',
         'कोई नई फनी रील देखी? | Koi nayi funny reel dekhi? | (Did you see any new funny reel?)'
@@ -87,6 +90,7 @@ export default function App() {
         { hinglish: 'Kam karna', english: 'To reduce', devanagari: 'कम करना' }
       ],
       grammarTemplate: '"Bhaiya yeh bahut [ expensive ] hai. Iska [ fair price ] bataiye, thoda [ reduce ] padega."',
+      grammarEnglish: '"Brother this is very [ expensive ]. Tell me the [ fair price ], you will have to [ reduce ] it a bit."',
       greetings: [
         'आइए आइए! बोलिए क्या चाहिए आपको? | Aaiye aaiye! Boliye kya chahiye aapko? | (Come in! Tell me, what do you need?)',
         'अस्सलाम वालेकुम जी, बताइए। | Assalamualaikum ji, bataiye. | (Peace be upon you, tell me.)'
@@ -414,7 +418,7 @@ Return ONLY valid JSON:
             ))}
           </div>
 
-          {/* Mission Card - Neo Brutalist Style */}
+          {/* Mission Card */}
           <div className="mt-4 bg-emerald-300 border-4 border-slate-900 rounded-2xl p-4 shadow-[4px_4px_0px_0px_rgba(15,23,42,1)] relative">
             <div className="absolute -top-3 -right-3 bg-white border-2 border-slate-900 rounded-full w-8 h-8 flex items-center justify-center font-black shadow-[2px_2px_0px_0px_rgba(15,23,42,1)]">🎯</div>
             <p className="text-[10px] font-black text-slate-900 uppercase tracking-widest mb-1">Current Mission</p>
@@ -457,7 +461,7 @@ Return ONLY valid JSON:
                 )}
               </div>
 
-              {/* Secret Learning Card (Attached to User Message) */}
+              {/* Secret Learning Card */}
               {msg.hinglishHelp && (
                 <div className="mt-2 bg-slate-900 p-4 rounded-xl border-4 border-slate-900 shadow-[4px_4px_0px_0px_rgba(139,92,246,1)] w-[110%] relative right-[10%]">
                   <div className="flex justify-between items-center mb-2">
@@ -494,16 +498,17 @@ Return ONLY valid JSON:
         {/* Lower Command Deck */}
         <div className="bg-white border-t-4 border-slate-900 flex flex-col z-10 relative shadow-[0px_-4px_0px_0px_rgba(15,23,42,0.05)]">
           
-          {/* Blueprint Floating Header */}
-          <div className="absolute -top-12 left-4 right-4 bg-sky-200 border-4 border-slate-900 rounded-xl p-3 shadow-[4px_4px_0px_0px_rgba(15,23,42,1)] flex gap-3 items-center">
-             <span className="text-2xl bg-white rounded-full w-8 h-8 flex items-center justify-center border-2 border-slate-900 shadow-[2px_2px_0px_0px_rgba(15,23,42,1)]">💡</span>
-             <div>
+          {/* Blueprint Floating Header (Now taller to fit translation) */}
+          <div className="absolute -top-[90px] left-4 right-4 bg-sky-200 border-4 border-slate-900 rounded-xl p-3 shadow-[4px_4px_0px_0px_rgba(15,23,42,1)] flex gap-3 items-start">
+             <span className="text-2xl bg-white rounded-full w-8 h-8 flex items-center justify-center border-2 border-slate-900 shadow-[2px_2px_0px_0px_rgba(15,23,42,1)] shrink-0 mt-1">💡</span>
+             <div className="flex-1">
                 <p className="text-[10px] font-black text-slate-900 uppercase tracking-widest mb-0.5">Blueprint</p>
-                <p className="text-xs font-bold text-slate-800 leading-tight">{scenarios[scenario].grammarTemplate}</p>
+                <p className="text-xs font-bold text-slate-800 leading-tight mb-1">{scenarios[scenario].grammarTemplate}</p>
+                <p className="text-[10px] font-bold text-slate-600 leading-tight italic border-t border-slate-900/10 pt-1">Meaning: {scenarios[scenario].grammarEnglish}</p>
              </div>
           </div>
 
-          <div className="p-4 pt-8 flex flex-col gap-3">
+          <div className="p-4 pt-12 flex flex-col gap-3">
             {/* Legend & Toggles */}
             <div className="flex justify-between items-center px-1">
                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1">

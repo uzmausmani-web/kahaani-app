@@ -273,13 +273,12 @@ Return ONLY valid JSON:
 `;
 
     try {
-      // NEW: Updated to gemini-1.5-flash for max stability
-      const response = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=" + apiKey, {
+      // Reverted back to flash-lite-latest but kept the JSON lock
+      const response = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-lite-latest:generateContent?key=" + apiKey, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           contents: [{ role: 'user', parts: [{ text: structuredPrompt }] }],
-          // NEW: This explicitly forces the AI to output valid, clean JSON without any markdown formatting
           generationConfig: {
             responseMimeType: "application/json"
           }

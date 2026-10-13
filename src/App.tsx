@@ -195,7 +195,7 @@ export default function App() {
     if (!vault.find(v => v.hinglish === hinglish)) {
       setVault([...vault, { hinglish, english }]);
       setXp(prev => prev + 15); 
-      setStatusMessage('Saved to Vault! +15 XP');
+      setStatusMessage('Saved to Vault! +15 XP 📦');
       setTimeout(() => setStatusMessage(null), 3000);
     }
   };
@@ -206,11 +206,11 @@ export default function App() {
     practiceRecRef.current.onresult = (event: any) => {
       const spoken = event.results[0][0].transcript.toLowerCase();
       if (spoken.length > 2) {
-        setStatusMessage(`Nailed it! +30 XP`);
+        setStatusMessage(`Nailed it! +30 XP 🔥`);
         setXp(prev => prev + 30);
         setTimeout(() => setStatusMessage(null), 3000);
       } else {
-        setStatusMessage(`Try again!`);
+        setStatusMessage(`Try again! ❌`);
         setTimeout(() => setStatusMessage(null), 3000);
       }
     };
@@ -233,7 +233,7 @@ export default function App() {
     let bonusXp = 0;
     if (wordsUsed.length > 0) {
       bonusXp = wordsUsed.length * 50; 
-      setStatusMessage(`Vocab Bonus! +${bonusXp} XP 🔥`);
+      setStatusMessage(`Vocab Combo! +${bonusXp} XP 🚀`);
       setTimeout(() => setStatusMessage(null), 4000);
     }
     
@@ -327,42 +327,53 @@ Return ONLY valid JSON:
     await generateAIResponse(userText, wasListening);
   };
 
+  // LOGIN SCREEN
   if (!isKeySet) {
     return (
-      <div className="min-h-screen bg-orange-50 flex items-center justify-center p-6">
-        <div className="bg-white p-8 rounded-2xl shadow-sm border border-orange-100 max-w-md w-full">
-          <h1 className="text-3xl font-bold text-orange-800 mb-2">Kahaani 🎯</h1>
-          <p className="text-gray-600 mb-6 text-sm font-medium">Connect the API to start the language engine.</p>
+      <div className="min-h-screen bg-violet-200 flex items-center justify-center p-6 font-sans">
+        <div className="bg-white p-8 rounded-3xl border-4 border-slate-900 shadow-[8px_8px_0px_0px_rgba(15,23,42,1)] max-w-md w-full">
+          <h1 className="text-5xl font-black text-slate-900 mb-2 tracking-tight">Kahaani <span className="text-violet-500">⚡</span></h1>
+          <p className="text-slate-600 mb-8 font-bold">Plug in the AI engine to start.</p>
           <input 
             type="password"
             value={apiKey}
             onChange={(e) => setApiKey(e.target.value)}
             placeholder="Paste Gemini API Key here..."
-            className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:outline-none focus:border-orange-500 mb-4"
+            className="w-full px-5 py-4 rounded-xl border-4 border-slate-900 focus:outline-none focus:bg-violet-50 font-bold mb-6 text-lg transition-colors"
           />
-          <button onClick={saveKey} className="w-full bg-orange-600 hover:bg-orange-700 text-white px-6 py-3 rounded-xl font-bold transition-colors">Start Coaching</button>
+          <button 
+            onClick={saveKey} 
+            className="w-full bg-violet-500 hover:bg-violet-400 text-white px-6 py-4 rounded-xl font-black text-xl border-4 border-slate-900 shadow-[4px_4px_0px_0px_rgba(15,23,42,1)] active:translate-y-1 active:shadow-[0px_0px_0px_0px_rgba(15,23,42,1)] transition-all"
+          >
+            START HACKING 🚀
+          </button>
         </div>
       </div>
     );
   }
 
+  // MAIN APP SCREEN
   return (
-    <div className="min-h-screen bg-orange-50 font-sans p-2 md:p-8 relative">
+    <div className="min-h-screen bg-violet-100 font-sans p-2 md:p-8 flex justify-center items-center relative overflow-hidden">
+      
+      {/* Vault Modal Overlay */}
       {isVaultOpen && (
-        <div className="absolute inset-0 z-50 bg-black/40 flex justify-end">
-          <div className="w-full max-w-sm bg-white h-full shadow-2xl p-6 overflow-y-auto">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-2xl font-bold text-orange-800">Your Vault ⭐</h2>
-              <button onClick={() => setIsVaultOpen(false)} className="text-gray-500 hover:text-black font-bold">Close X</button>
+        <div className="absolute inset-0 z-50 bg-slate-900/50 flex justify-end backdrop-blur-sm">
+          <div className="w-full max-w-sm bg-yellow-300 h-full border-l-4 border-slate-900 p-6 overflow-y-auto shadow-2xl">
+            <div className="flex justify-between items-center mb-8">
+              <h2 className="text-4xl font-black text-slate-900 tracking-tight">VAULT ⭐</h2>
+              <button onClick={() => setIsVaultOpen(false)} className="bg-white border-4 border-slate-900 px-3 py-1 rounded-full font-black text-slate-900 shadow-[4px_4px_0px_0px_rgba(15,23,42,1)] active:translate-y-1 active:shadow-none transition-all">X</button>
             </div>
             {vault.length === 0 ? (
-              <p className="text-gray-500 text-sm">Tap the ⭐ on any translation card to save phrases here.</p>
+              <div className="bg-white border-4 border-slate-900 p-6 rounded-2xl shadow-[4px_4px_0px_0px_rgba(15,23,42,1)] text-center">
+                <p className="font-bold text-slate-600">Tap the ⭐ on translation cards to save phrases here!</p>
+              </div>
             ) : (
-              <div className="flex flex-col gap-3">
+              <div className="flex flex-col gap-4">
                 {vault.map((v, i) => (
-                  <div key={i} className="p-3 bg-orange-50 rounded-xl border border-orange-100">
-                    <p className="font-bold text-orange-800">{v.hinglish}</p>
-                    <p className="text-xs text-gray-600">{v.english}</p>
+                  <div key={i} className="bg-white p-4 rounded-2xl border-4 border-slate-900 shadow-[4px_4px_0px_0px_rgba(15,23,42,1)]">
+                    <p className="font-black text-xl text-violet-600 mb-1">{v.hinglish}</p>
+                    <p className="text-sm font-bold text-slate-500">{v.english}</p>
                   </div>
                 ))}
               </div>
@@ -371,61 +382,51 @@ Return ONLY valid JSON:
         </div>
       )}
 
-      <div className="max-w-3xl mx-auto flex flex-col h-[95vh] bg-white rounded-2xl shadow-xl overflow-hidden border border-orange-100">
+      {/* Main Phone Wrapper */}
+      <div className="w-full max-w-[420px] h-[95vh] md:h-[850px] bg-slate-50 rounded-[2.5rem] flex flex-col overflow-hidden border-4 border-slate-900 shadow-[12px_12px_0px_0px_rgba(15,23,42,1)] relative bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:16px_16px]">
         
-        <div className="bg-white p-4 border-b border-orange-100 z-10">
+        {/* Header HUD */}
+        <div className="bg-white p-4 border-b-4 border-slate-900 z-10 sticky top-0">
           <div className="flex justify-between items-center mb-4">
-            <div className="flex items-center gap-4">
-              <h1 className="text-2xl font-bold text-orange-800">Kahaani 💬</h1>
-              <div className="bg-orange-100 px-3 py-1 rounded-full text-orange-800 font-black text-sm">
-                XP: {xp}
-              </div>
+            <div className="flex items-center gap-3">
+              <h1 className="text-3xl font-black text-slate-900 tracking-tight">Kahaani<span className="text-emerald-500">.</span></h1>
             </div>
-            <button onClick={() => setIsVaultOpen(true)} className="px-4 py-2 bg-yellow-100 text-yellow-800 rounded-full font-bold text-sm hover:bg-yellow-200 transition-colors">
-              Vault ⭐ ({vault.length})
-            </button>
+            <div className="flex gap-2">
+              <div className="bg-yellow-300 border-2 border-slate-900 px-3 py-1 rounded-full text-slate-900 font-black text-sm shadow-[2px_2px_0px_0px_rgba(15,23,42,1)]">
+                {xp} XP
+              </div>
+              <button onClick={() => setIsVaultOpen(true)} className="bg-violet-300 border-2 border-slate-900 px-3 py-1 rounded-full font-black text-sm text-slate-900 shadow-[2px_2px_0px_0px_rgba(15,23,42,1)] active:translate-y-0.5 active:shadow-none transition-all">
+                ⭐ {vault.length}
+              </button>
+            </div>
           </div>
           
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 w-full">
-            <div className="flex gap-2 overflow-x-auto pb-2 w-full md:w-auto">
-              {Object.keys(scenarios).map(scen => (
-                <button 
-                  key={scen}
-                  onClick={() => changeScenario(scen)}
-                  className={`whitespace-nowrap px-4 py-2 rounded-full text-sm font-medium transition-colors ${scenario === scen ? 'bg-orange-500 text-white shadow-md' : 'bg-orange-50 text-orange-800 hover:bg-orange-100'}`}
-                >
-                  {scenarios[scen].title}
-                </button>
-              ))}
-            </div>
-            
-            <label className="flex items-center gap-2 text-[10px] uppercase tracking-wider text-gray-500 font-black cursor-pointer bg-gray-50 px-3 py-2 rounded-lg border border-gray-200">
-              <input 
-                type="checkbox" 
-                checked={autoSpeak}
-                onChange={(e) => setAutoSpeak(e.target.checked)}
-                className="accent-orange-600 w-4 h-4 cursor-pointer"
-              />
-              Auto-Speak
-            </label>
+          {/* Persona Selector */}
+          <div className="flex gap-3 overflow-x-auto pb-2 w-full no-scrollbar">
+            {Object.keys(scenarios).map(scen => (
+              <button 
+                key={scen}
+                onClick={() => changeScenario(scen)}
+                className={`whitespace-nowrap px-4 py-2 rounded-xl text-sm font-black border-2 border-slate-900 transition-all ${scenario === scen ? 'bg-slate-900 text-white shadow-[4px_4px_0px_0px_#8b5cf6] translate-y-[-2px]' : 'bg-white text-slate-600 shadow-[2px_2px_0px_0px_rgba(15,23,42,1)] active:translate-y-1 active:shadow-none'}`}
+              >
+                {scenarios[scen].title}
+              </button>
+            ))}
           </div>
 
-          <div className="mt-3 bg-blue-50 border border-blue-200 rounded-xl p-3">
-            <div className="flex items-start gap-3 mb-3">
-              <span className="text-xl">🎯</span>
-              <div>
-                <p className="text-[10px] font-black text-blue-500 uppercase tracking-wider">Active Mission</p>
-                <p className="text-sm font-bold text-blue-900">{scenarios[scenario].mission}</p>
-              </div>
-            </div>
+          {/* Mission Card - Neo Brutalist Style */}
+          <div className="mt-4 bg-emerald-300 border-4 border-slate-900 rounded-2xl p-4 shadow-[4px_4px_0px_0px_rgba(15,23,42,1)] relative">
+            <div className="absolute -top-3 -right-3 bg-white border-2 border-slate-900 rounded-full w-8 h-8 flex items-center justify-center font-black shadow-[2px_2px_0px_0px_rgba(15,23,42,1)]">🎯</div>
+            <p className="text-[10px] font-black text-slate-900 uppercase tracking-widest mb-1">Current Mission</p>
+            <p className="text-sm font-black text-slate-900 leading-snug mb-3">{scenarios[scenario].mission}</p>
             
-            <div className="border-t border-blue-200/50 pt-2">
-              <p className="text-[10px] font-bold text-blue-500 uppercase mb-1 tracking-wider">Target Vocabulary (+50 XP Each)</p>
+            <div className="border-t-2 border-slate-900/20 pt-3">
+              <p className="text-[10px] font-black text-slate-900 uppercase tracking-widest mb-2">Use Words For Max XP:</p>
               <div className="flex flex-wrap gap-2">
                 {scenarios[scenario].vocab.map((v, i) => (
-                  <div key={i} className="bg-white px-2 py-1 rounded-md text-xs border border-blue-100 flex items-center shadow-sm">
-                    <span className="font-bold text-blue-800">{v.hinglish}</span>
-                    <span className="text-gray-500 ml-1">({v.english})</span>
+                  <div key={i} className="bg-white px-2 py-1.5 rounded-lg text-xs border-2 border-slate-900 flex items-center shadow-[2px_2px_0px_0px_rgba(15,23,42,1)] font-bold">
+                    <span className="text-emerald-600">{v.hinglish}</span>
+                    <span className="text-slate-400 ml-1">({v.english})</span>
                   </div>
                 ))}
               </div>
@@ -433,72 +434,94 @@ Return ONLY valid JSON:
           </div>
         </div>
 
-        <div className="flex-1 bg-gray-50 p-4 overflow-y-auto flex flex-col gap-5 relative">
-          {messages.map((msg, idx) => (
-            <div key={idx} className={`max-w-[90%] p-4 rounded-2xl ${msg.sender === 'You' ? 'bg-orange-500 text-white self-end rounded-tr-none' : 'bg-white shadow-sm border border-gray-200 text-gray-800 self-start rounded-tl-none relative group'}`}>
-              <div className="flex justify-between items-start gap-4">
-                <div className="w-full">
-                  <p className="text-[10px] opacity-75 mb-1 font-black uppercase tracking-widest">{msg.sender === 'AI' ? scenarios[scenario].title.split(' ')[0] : 'You'}</p>
-                  <p className="leading-relaxed font-medium text-[15px]">{msg.sender === 'AI' ? getDisplayText(msg.text) : msg.text}</p>
-                  
-                  {msg.hinglishHelp && (
-                    <div className="mt-3 pt-3 border-t border-orange-400/30">
-                      <div className="flex justify-between items-start mb-2">
-                        <span className="font-black text-orange-100 uppercase tracking-widest text-[10px]">How to say it</span>
-                        <button onClick={() => addToVault(msg.hinglishHelp!.hinglish, msg.text)} className="text-lg hover:scale-110 transition-transform" title="Save to Vault">⭐</button>
-                      </div>
-                      <span className="font-bold text-white text-md block mb-3">{msg.hinglishHelp.hinglish}</span>
-                      
-                      <div className="flex gap-2">
-                        <button onClick={() => speakText(msg.hinglishHelp!.devanagari)} className="flex-1 py-2 bg-white/20 hover:bg-white/30 rounded-lg text-white font-bold text-xs flex items-center justify-center gap-2 transition-colors">
-                          🔊 Listen
-                        </button>
-                        <button onClick={() => practicePronunciation(msg.hinglishHelp!.hinglish)} className="flex-1 py-2 bg-orange-600 hover:bg-orange-700 shadow-inner rounded-lg text-white font-bold text-xs flex items-center justify-center gap-2 transition-colors">
-                          🎤 Practice
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </div>
+        {/* Floating Status Notification */}
+        {statusMessage && (
+          <div className="absolute top-[320px] left-1/2 -translate-x-1/2 bg-yellow-300 border-4 border-slate-900 text-slate-900 font-black px-6 py-3 rounded-full text-md shadow-[4px_4px_0px_0px_rgba(15,23,42,1)] animate-bounce z-50">
+            {statusMessage}
+          </div>
+        )}
 
+        {/* Chat Stream */}
+        <div className="flex-1 p-4 overflow-y-auto flex flex-col gap-6 no-scrollbar pb-10">
+          {messages.map((msg, idx) => (
+            <div key={idx} className={`max-w-[85%] relative ${msg.sender === 'You' ? 'self-end' : 'self-start'}`}>
+              
+              {/* Main Bubble */}
+              <div className={`p-4 rounded-2xl border-4 border-slate-900 shadow-[4px_4px_0px_0px_rgba(15,23,42,1)] ${msg.sender === 'You' ? 'bg-violet-500 text-white rounded-tr-none' : 'bg-white text-slate-900 rounded-tl-none'}`}>
+                <p className="text-[10px] opacity-60 mb-1 font-black uppercase tracking-widest">{msg.sender === 'AI' ? scenarios[scenario].title.split(' ')[0] : 'YOU'}</p>
+                <p className="leading-relaxed font-bold text-[15px]">{msg.sender === 'AI' ? getDisplayText(msg.text) : msg.text}</p>
+                
+                {/* AI Audio Button */}
                 {msg.sender === 'AI' && !msg.text.includes('Google API Error') && (
-                  <button onClick={() => speakText(msg.text)} className="p-2 rounded-full bg-orange-100 text-orange-600 hover:bg-orange-200 transition-colors shrink-0">🔊</button>
+                  <button onClick={() => speakText(msg.text)} className="absolute -left-3 -bottom-3 w-10 h-10 rounded-full bg-yellow-300 border-2 border-slate-900 text-slate-900 hover:bg-yellow-400 transition-colors shadow-[2px_2px_0px_0px_rgba(15,23,42,1)] flex items-center justify-center font-black">🔊</button>
                 )}
               </div>
+
+              {/* Secret Learning Card (Attached to User Message) */}
+              {msg.hinglishHelp && (
+                <div className="mt-2 bg-slate-900 p-4 rounded-xl border-4 border-slate-900 shadow-[4px_4px_0px_0px_rgba(139,92,246,1)] w-[110%] relative right-[10%]">
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="font-black text-violet-400 uppercase tracking-widest text-[10px]">Actual Translation</span>
+                    <button onClick={() => addToVault(msg.hinglishHelp!.hinglish, msg.text)} className="text-xl bg-white border-2 border-slate-900 rounded-full w-8 h-8 flex items-center justify-center shadow-[2px_2px_0px_0px_rgba(139,92,246,1)] active:translate-y-1 active:shadow-none transition-all" title="Save to Vault">⭐</button>
+                  </div>
+                  <span className="font-black text-white text-lg block mb-4 leading-tight">{msg.hinglishHelp.hinglish}</span>
+                  
+                  <div className="flex gap-2">
+                    <button onClick={() => speakText(msg.hinglishHelp!.devanagari)} className="flex-1 py-2 bg-slate-700 hover:bg-slate-600 rounded-lg text-white font-black text-xs border-2 border-slate-900 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:translate-y-1 active:shadow-none transition-all">
+                      🔊 LISTEN
+                    </button>
+                    <button onClick={() => practicePronunciation(msg.hinglishHelp!.hinglish)} className="flex-1 py-2 bg-violet-500 hover:bg-violet-400 rounded-lg text-white font-black text-xs border-2 border-slate-900 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:translate-y-1 active:shadow-none transition-all">
+                      🎤 TEST
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           ))}
-          
-          {statusMessage && (
-            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-green-100 border border-green-300 text-green-800 font-bold px-4 py-2 rounded-full text-sm shadow-lg animate-bounce z-20">
-              {statusMessage}
-            </div>
-          )}
+
           {isLoading && (
-            <div className="bg-white shadow-sm border border-gray-200 text-gray-800 self-start max-w-[85%] p-4 rounded-2xl rounded-tl-none">
-              <p className="text-sm font-bold text-gray-400 animate-pulse">Typing...</p>
+            <div className="bg-white border-4 border-slate-900 shadow-[4px_4px_0px_0px_rgba(15,23,42,1)] self-start p-4 rounded-2xl rounded-tl-none">
+              <div className="flex gap-1 items-center">
+                <span className="w-3 h-3 bg-violet-500 rounded-full animate-bounce"></span>
+                <span className="w-3 h-3 bg-violet-500 rounded-full animate-bounce delay-75"></span>
+                <span className="w-3 h-3 bg-violet-500 rounded-full animate-bounce delay-150"></span>
+              </div>
             </div>
           )}
           <div ref={chatEndRef} />
         </div>
 
-        <div className="bg-white border-t border-orange-100 flex flex-col">
+        {/* Lower Command Deck */}
+        <div className="bg-white border-t-4 border-slate-900 flex flex-col z-10 relative shadow-[0px_-4px_0px_0px_rgba(15,23,42,0.05)]">
           
-          <div className="bg-orange-50 px-4 py-3 border-b border-orange-100 flex gap-3 items-center">
-             <span className="text-xl">💡</span>
+          {/* Blueprint Floating Header */}
+          <div className="absolute -top-12 left-4 right-4 bg-sky-200 border-4 border-slate-900 rounded-xl p-3 shadow-[4px_4px_0px_0px_rgba(15,23,42,1)] flex gap-3 items-center">
+             <span className="text-2xl bg-white rounded-full w-8 h-8 flex items-center justify-center border-2 border-slate-900 shadow-[2px_2px_0px_0px_rgba(15,23,42,1)]">💡</span>
              <div>
-                <p className="text-[10px] font-bold text-orange-600 uppercase tracking-wider mb-0.5">Sentence Blueprint</p>
-                <p className="text-sm font-medium text-orange-900 italic">{scenarios[scenario].grammarTemplate}</p>
+                <p className="text-[10px] font-black text-slate-900 uppercase tracking-widest mb-0.5">Blueprint</p>
+                <p className="text-xs font-bold text-slate-800 leading-tight">{scenarios[scenario].grammarTemplate}</p>
              </div>
           </div>
 
-          <div className="p-4 flex flex-col gap-2">
-            <div className="flex justify-between px-2">
-               <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Type English (+2 XP) or Hinglish (+10 XP)</span>
-               <span className="text-[10px] font-bold text-orange-500 uppercase tracking-wider">🎙️ Speak Hinglish (+20 XP)</span>
+          <div className="p-4 pt-8 flex flex-col gap-3">
+            {/* Legend & Toggles */}
+            <div className="flex justify-between items-center px-1">
+               <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1">
+                 <span className="text-emerald-500">+10 XP</span> Text <span className="text-violet-500 ml-2">+20 XP</span> Voice
+               </span>
+               <label className="flex items-center gap-2 text-[10px] uppercase tracking-widest text-slate-500 font-black cursor-pointer">
+                  <input type="checkbox" checked={autoSpeak} onChange={(e) => setAutoSpeak(e.target.checked)} className="accent-violet-500 w-4 h-4 cursor-pointer" />
+                  Auto-Audio
+                </label>
             </div>
+            
+            {/* Input Row */}
             <div className="flex gap-2">
               {recognitionRef.current && (
-                <button onClick={toggleListen} className={`p-4 rounded-xl font-bold transition-all shrink-0 ${isListening ? 'bg-red-500 text-white shadow-lg scale-105 animate-pulse' : 'bg-orange-100 text-orange-600 hover:bg-orange-200'}`} title="Speak for Max XP!">
+                <button 
+                  onClick={toggleListen} 
+                  className={`p-4 rounded-xl font-black border-4 border-slate-900 shrink-0 transition-all ${isListening ? 'bg-rose-400 text-slate-900 shadow-none translate-y-1 animate-pulse' : 'bg-white text-slate-900 shadow-[4px_4px_0px_0px_rgba(15,23,42,1)] active:translate-y-1 active:shadow-none'}`} 
+                >
                   {isListening ? '🛑' : '🎤'}
                 </button>
               )}
@@ -506,13 +529,17 @@ Return ONLY valid JSON:
                 type="text" 
                 value={inputText}
                 onChange={(e: ChangeEvent<HTMLInputElement>) => setInputText(e.target.value)}
-                placeholder={isListening ? "Listening for bonus XP..." : "Fill in the blueprint..."}
-                className="flex-1 px-4 py-3 rounded-xl border-2 border-gray-200 focus:outline-none focus:border-orange-500 font-medium transition-colors"
+                placeholder={isListening ? "Listening for bonus XP..." : "Type here..."}
+                className="flex-1 px-4 py-3 rounded-xl border-4 border-slate-900 focus:outline-none focus:bg-violet-50 font-bold text-slate-900 transition-colors"
                 onKeyDown={(e: KeyboardEvent<HTMLInputElement>) => e.key === 'Enter' && !isLoading && handleSend()}
                 disabled={isLoading || isListening}
               />
-              <button onClick={handleSend} disabled={isLoading} className="bg-orange-600 hover:bg-orange-700 disabled:bg-orange-300 text-white px-6 py-3 rounded-xl font-black transition-colors shadow-md">
-                Send
+              <button 
+                onClick={handleSend} 
+                disabled={isLoading} 
+                className="bg-violet-500 hover:bg-violet-400 text-white px-5 py-3 rounded-xl font-black border-4 border-slate-900 shadow-[4px_4px_0px_0px_rgba(15,23,42,1)] active:translate-y-1 active:shadow-none transition-all disabled:opacity-50 disabled:active:translate-y-0 disabled:active:shadow-[4px_4px_0px_0px_rgba(15,23,42,1)]"
+              >
+                SEND
               </button>
             </div>
           </div>

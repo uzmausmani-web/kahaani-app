@@ -47,7 +47,6 @@ export default function App() {
   const practiceRecRef = useRef<any>(null);
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
 
-  // NEW: Added grammarEnglish to show the meaning of the blueprint
   const scenarios: Record<string, { title: string, mission: string, vocab: VocabWord[], grammarTemplate: string, grammarEnglish: string, greetings: string[], prompt: string }> = {
     Grandparents: {
       title: 'Dada/Dadi 👵🏽👴🏽',
@@ -274,11 +273,16 @@ Return ONLY valid JSON:
 `;
 
     try {
-      const response = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-lite-latest:generateContent?key=" + apiKey, {
+      // NEW: Updated to gemini-1.5-flash for max stability
+      const response = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=" + apiKey, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          contents: [{ role: 'user', parts: [{ text: structuredPrompt }] }]
+          contents: [{ role: 'user', parts: [{ text: structuredPrompt }] }],
+          // NEW: This explicitly forces the AI to output valid, clean JSON without any markdown formatting
+          generationConfig: {
+            responseMimeType: "application/json"
+          }
         })
       });
       
@@ -286,8 +290,7 @@ Return ONLY valid JSON:
       if (!response.ok) throw new Error(data.error?.message || "API Key restricted.");
       
       const rawText = data.candidates[0].content.parts[0].text;
-      const cleanJson = rawText.replace(/```json/g, '').replace(/```/g, '').trim();
-      const parsed = JSON.parse(cleanJson);
+      const parsed = JSON.parse(rawText);
 
       setMessages(prev => {
         const updated = [...prev];
@@ -310,6 +313,7 @@ Return ONLY valid JSON:
       if (autoSpeak) speakText(parsed.replyDevanagari);
       
     } catch (error) {
+      console.error(error);
       setMessages(prev => [...prev, { sender: 'AI', text: "Google API Error: " + (error as Error).message }]);
     }
     setIsLoading(false);
@@ -496,10 +500,10 @@ Return ONLY valid JSON:
         </div>
 
         {/* Lower Command Deck */}
-        <div className="bg-white border-t-4 border-slate-900 flex flex-col z-10 relative shadow-[0px_-4px_0px_0px_rgba(15,23,42,0.05)]">
+        <div className="bg-white border-t-4 border-slate-900 flex flex-col z-10 relative p-4 gap-4 shadow-[0px_-4px_0px_0px_rgba(15,23,42,0.05)]">
           
-          {/* Blueprint Floating Header (Now taller to fit translation) */}
-          <div className="absolute -top-[90px] left-4 right-4 bg-sky-200 border-4 border-slate-900 rounded-xl p-3 shadow-[4px_4px_0px_0px_rgba(15,23,42,1)] flex gap-3 items-start">
+          {/* Blueprint Header */}
+          <div className="bg-sky-200 border-4 border-slate-900 rounded-xl p-3 shadow-[4px_4px_0px_0px_rgba(15,23,42,1)] flex gap-3 items-start">
              <span className="text-2xl bg-white rounded-full w-8 h-8 flex items-center justify-center border-2 border-slate-900 shadow-[2px_2px_0px_0px_rgba(15,23,42,1)] shrink-0 mt-1">💡</span>
              <div className="flex-1">
                 <p className="text-[10px] font-black text-slate-900 uppercase tracking-widest mb-0.5">Blueprint</p>
@@ -508,7 +512,7 @@ Return ONLY valid JSON:
              </div>
           </div>
 
-          <div className="p-4 pt-12 flex flex-col gap-3">
+          <div className="flex flex-col gap-3">
             {/* Legend & Toggles */}
             <div className="flex justify-between items-center px-1">
                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1">

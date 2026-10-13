@@ -47,7 +47,6 @@ export default function App() {
   const practiceRecRef = useRef<any>(null);
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
 
-  // NEW: Added a grammarTemplate for each scenario to help construct the sentence
   const scenarios: Record<string, { title: string, mission: string, vocab: VocabWord[], grammarTemplate: string, greetings: string[], prompt: string }> = {
     Grandparents: {
       title: 'Dada/Dadi 👵🏽👴🏽',
@@ -68,11 +67,11 @@ export default function App() {
       title: 'Cousin in Delhi 📱',
       mission: 'Complain about how much homework you have and ask what shows they are watching.',
       vocab: [
-        { hinglish: 'Pakaau', english: 'Boring', devanagari: 'पकाऊ' },
-        { hinglish: 'Zabardast', english: 'Awesome', devanagari: 'ज़बरदस्त' },
-        { hinglish: 'Magajmari', english: 'Headache/Hassle', devanagari: 'मगजमारी' }
+        { hinglish: 'Bekaar', english: 'Useless/Boring', devanagari: 'बेकार' },
+        { hinglish: 'Badhiya', english: 'Great/Good', devanagari: 'बढ़िया' },
+        { hinglish: 'Pareshani', english: 'Trouble/Problem', devanagari: 'परेशानी' }
       ],
-      grammarTemplate: '"Yeh homework bahut [ boring ] hai, aur bahut [ hassle ] hai. Tum koi [ awesome ] show dekh rahe ho?"',
+      grammarTemplate: '"Yeh homework bahut [ useless/boring ] hai, aur roz nayi [ trouble/problem ] hoti hai. Tum koi [ great/good ] show dekh rahe ho?"',
       greetings: [
         'और बता, क्या चल रहा है आज कल? | Aur bata, kya chal raha hai aaj kal? | (Tell me, what is up these days?)',
         'कोई नई फनी रील देखी? | Koi nayi funny reel dekhi? | (Did you see any new funny reel?)'
@@ -484,7 +483,6 @@ Return ONLY valid JSON:
 
         <div className="bg-white border-t border-orange-100 flex flex-col">
           
-          {/* NEW: Sentence Blueprint Area */}
           <div className="bg-orange-50 px-4 py-3 border-b border-orange-100 flex gap-3 items-center">
              <span className="text-xl">💡</span>
              <div>

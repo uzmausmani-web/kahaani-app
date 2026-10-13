@@ -93,7 +93,6 @@ export default function App() {
     
     const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (SpeechRecognitionAPI) {
-      // Main Chat Recognition
       recognitionRef.current = new SpeechRecognitionAPI();
       recognitionRef.current.continuous = true;
       recognitionRef.current.interimResults = true;
@@ -109,7 +108,6 @@ export default function App() {
       recognitionRef.current.onerror = () => setIsListening(false);
       recognitionRef.current.onend = () => setIsListening(false);
 
-      // Pronunciation Practice Recognition
       practiceRecRef.current = new SpeechRecognitionAPI();
       practiceRecRef.current.continuous = false;
       practiceRecRef.current.interimResults = false;
@@ -176,7 +174,7 @@ export default function App() {
   const addToVault = (hinglish: string, english: string) => {
     if (!vault.find(v => v.hinglish === hinglish)) {
       setVault([...vault, { hinglish, english }]);
-      setXp(prev => prev + 15); // Reward for saving words
+      setXp(prev => prev + 15); 
     }
   };
 
@@ -185,7 +183,6 @@ export default function App() {
     
     practiceRecRef.current.onresult = (event: any) => {
       const spoken = event.results[0][0].transcript.toLowerCase();
-      // Simplified validation for gamification
       if (spoken.length > 2) {
         setPracticeStatus(`Nailed it! +30 XP`);
         setXp(prev => prev + 30);
@@ -207,11 +204,10 @@ export default function App() {
   const generateAIResponse = async (userText: string, usedVoice: boolean) => {
     setIsLoading(true);
     
-    // XP Calculation
     const isEnglish = /^[a-zA-Z\s.,?!'"]+$/.test(userText) && userText.split(' ').length > 2;
-    if (usedVoice) setXp(prev => prev + 20); // Voice Tax
-    else if (!isEnglish) setXp(prev => prev + 10); // Typed Hinglish
-    else setXp(prev => prev + 2); // English Crutch
+    if (usedVoice) setXp(prev => prev + 20); 
+    else if (!isEnglish) setXp(prev => prev + 10); 
+    else setXp(prev => prev + 2); 
     
     const personaPrompt = scenarios[scenario].prompt;
     const currentScenarioName = scenarios[scenario].title;
@@ -320,7 +316,6 @@ Return ONLY valid JSON:
 
   return (
     <div className="min-h-screen bg-orange-50 font-sans p-2 md:p-8 relative">
-      {/* Vault Modal Overlay */}
       {isVaultOpen && (
         <div className="absolute inset-0 z-50 bg-black/40 flex justify-end">
           <div className="w-full max-w-sm bg-white h-full shadow-2xl p-6 overflow-y-auto">
@@ -346,7 +341,6 @@ Return ONLY valid JSON:
 
       <div className="max-w-3xl mx-auto flex flex-col h-[95vh] bg-white rounded-2xl shadow-xl overflow-hidden border border-orange-100">
         
-        {/* Header & HUD */}
         <div className="bg-white p-4 border-b border-orange-100 z-10">
           <div className="flex justify-between items-center mb-4">
             <div className="flex items-center gap-4">
@@ -360,19 +354,30 @@ Return ONLY valid JSON:
             </button>
           </div>
           
-          <div className="flex gap-2 overflow-x-auto pb-2 w-full">
-            {Object.keys(scenarios).map(scen => (
-              <button 
-                key={scen}
-                onClick={() => changeScenario(scen)}
-                className={`whitespace-nowrap px-4 py-2 rounded-full text-sm font-medium transition-colors ${scenario === scen ? 'bg-orange-500 text-white shadow-md' : 'bg-orange-50 text-orange-800 hover:bg-orange-100'}`}
-              >
-                {scenarios[scen].title}
-              </button>
-            ))}
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 w-full">
+            <div className="flex gap-2 overflow-x-auto pb-2 w-full md:w-auto">
+              {Object.keys(scenarios).map(scen => (
+                <button 
+                  key={scen}
+                  onClick={() => changeScenario(scen)}
+                  className={`whitespace-nowrap px-4 py-2 rounded-full text-sm font-medium transition-colors ${scenario === scen ? 'bg-orange-500 text-white shadow-md' : 'bg-orange-50 text-orange-800 hover:bg-orange-100'}`}
+                >
+                  {scenarios[scen].title}
+                </button>
+              ))}
+            </div>
+            
+            <label className="flex items-center gap-2 text-[10px] uppercase tracking-wider text-gray-500 font-black cursor-pointer bg-gray-50 px-3 py-2 rounded-lg border border-gray-200">
+              <input 
+                type="checkbox" 
+                checked={autoSpeak}
+                onChange={(e) => setAutoSpeak(e.target.checked)}
+                className="accent-orange-600 w-4 h-4 cursor-pointer"
+              />
+              Auto-Speak
+            </label>
           </div>
 
-          {/* Active Mission Banner */}
           <div className="mt-3 bg-blue-50 border border-blue-200 rounded-xl p-3 flex items-center gap-3">
             <span className="text-xl">🎯</span>
             <div>
@@ -382,7 +387,6 @@ Return ONLY valid JSON:
           </div>
         </div>
 
-        {/* Chat Area */}
         <div className="flex-1 bg-gray-50 p-4 overflow-y-auto flex flex-col gap-5">
           {messages.map((msg, idx) => (
             <div key={idx} className={`max-w-[90%] p-4 rounded-2xl ${msg.sender === 'You' ? 'bg-orange-500 text-white self-end rounded-tr-none' : 'bg-white shadow-sm border border-gray-200 text-gray-800 self-start rounded-tl-none relative group'}`}>
@@ -391,7 +395,6 @@ Return ONLY valid JSON:
                   <p className="text-[10px] opacity-75 mb-1 font-black uppercase tracking-widest">{msg.sender === 'AI' ? scenarios[scenario].title.split(' ')[0] : 'You'}</p>
                   <p className="leading-relaxed font-medium text-[15px]">{msg.sender === 'AI' ? getDisplayText(msg.text) : msg.text}</p>
                   
-                  {/* The Learning Card */}
                   {msg.hinglishHelp && (
                     <div className="mt-3 pt-3 border-t border-orange-400/30">
                       <div className="flex justify-between items-start mb-2">
@@ -400,7 +403,6 @@ Return ONLY valid JSON:
                       </div>
                       <span className="font-bold text-white text-md block mb-3">{msg.hinglishHelp.hinglish}</span>
                       
-                      {/* Gamified Pronunciation Practice */}
                       <div className="flex gap-2">
                         <button onClick={() => speakText(msg.hinglishHelp!.devanagari)} className="flex-1 py-2 bg-white/20 hover:bg-white/30 rounded-lg text-white font-bold text-xs flex items-center justify-center gap-2 transition-colors">
                           🔊 Listen
@@ -420,7 +422,6 @@ Return ONLY valid JSON:
             </div>
           ))}
           
-          {/* Status Indicators */}
           {practiceStatus && (
             <div className="self-center bg-green-100 border border-green-300 text-green-800 font-bold px-4 py-2 rounded-full text-sm shadow-sm animate-pulse">
               {practiceStatus}
@@ -434,7 +435,6 @@ Return ONLY valid JSON:
           <div ref={chatEndRef} />
         </div>
 
-        {/* Gamified Input Bar */}
         <div className="bg-white p-4 border-t border-orange-100 flex flex-col gap-2">
           <div className="flex justify-between px-2">
              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Type English (+2 XP) or Hinglish (+10 XP)</span>

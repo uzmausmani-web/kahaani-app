@@ -47,8 +47,8 @@ export default function App() {
   const practiceRecRef = useRef<any>(null);
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
 
-  // NEW: Contextual missions with a Target Vocabulary list to actively teach words
-  const scenarios: Record<string, { title: string, mission: string, vocab: VocabWord[], greetings: string[], prompt: string }> = {
+  // NEW: Added a grammarTemplate for each scenario to help construct the sentence
+  const scenarios: Record<string, { title: string, mission: string, vocab: VocabWord[], grammarTemplate: string, greetings: string[], prompt: string }> = {
     Grandparents: {
       title: 'Dada/Dadi 👵🏽👴🏽',
       mission: 'Tell them about your robotics team and how hard you are working on a project.',
@@ -57,6 +57,7 @@ export default function App() {
         { hinglish: 'Banana', english: 'To build/make', devanagari: 'बनाना' },
         { hinglish: 'Koshish', english: 'Attempt/Effort', devanagari: 'कोशिश' }
       ],
+      grammarTemplate: '"Main ek robot [ build ] ki [ attempt ] kar rahi hoon, ismein bahut [ hard work ] lag rahi hai."',
       greetings: [
         'बेटा, आज का दिन कैसा था? | Beta, aaj ka din kaisa tha? | (How was your day today?)',
         'सुना है तुम रोबोटिक्स में बहुत अच्छा कर रही हो! | Suna hai tum robotics mein bahut achcha kar rahi ho! | (I heard you are doing very well in robotics!)'
@@ -71,6 +72,7 @@ export default function App() {
         { hinglish: 'Zabardast', english: 'Awesome', devanagari: 'ज़बरदस्त' },
         { hinglish: 'Magajmari', english: 'Headache/Hassle', devanagari: 'मगजमारी' }
       ],
+      grammarTemplate: '"Yeh homework bahut [ boring ] hai, aur bahut [ hassle ] hai. Tum koi [ awesome ] show dekh rahe ho?"',
       greetings: [
         'और बता, क्या चल रहा है आज कल? | Aur bata, kya chal raha hai aaj kal? | (Tell me, what is up these days?)',
         'कोई नई फनी रील देखी? | Koi nayi funny reel dekhi? | (Did you see any new funny reel?)'
@@ -85,6 +87,7 @@ export default function App() {
         { hinglish: 'Sahi daam', english: 'Right/Fair price', devanagari: 'सही दाम' },
         { hinglish: 'Kam karna', english: 'To reduce', devanagari: 'कम करना' }
       ],
+      grammarTemplate: '"Bhaiya yeh bahut [ expensive ] hai. Iska [ fair price ] bataiye, thoda [ reduce ] padega."',
       greetings: [
         'आइए आइए! बोलिए क्या चाहिए आपको? | Aaiye aaiye! Boliye kya chahiye aapko? | (Come in! Tell me, what do you need?)',
         'अस्सलाम वालेकुम जी, बताइए। | Assalamualaikum ji, bataiye. | (Peace be upon you, tell me.)'
@@ -224,14 +227,13 @@ export default function App() {
   const generateAIResponse = async (userText: string, usedVoice: boolean) => {
     setIsLoading(true);
     
-    // Check if she used the target vocabulary in her message
     const currentVocab = scenarios[scenario].vocab;
     const lowerUserText = userText.toLowerCase();
     const wordsUsed = currentVocab.filter(v => lowerUserText.includes(v.hinglish.toLowerCase()));
     
     let bonusXp = 0;
     if (wordsUsed.length > 0) {
-      bonusXp = wordsUsed.length * 50; // 50 XP per vocab word used
+      bonusXp = wordsUsed.length * 50; 
       setStatusMessage(`Vocab Bonus! +${bonusXp} XP 🔥`);
       setTimeout(() => setStatusMessage(null), 4000);
     }
@@ -418,7 +420,6 @@ Return ONLY valid JSON:
               </div>
             </div>
             
-            {/* NEW: Vocabulary Target List */}
             <div className="border-t border-blue-200/50 pt-2">
               <p className="text-[10px] font-bold text-blue-500 uppercase mb-1 tracking-wider">Target Vocabulary (+50 XP Each)</p>
               <div className="flex flex-wrap gap-2">
@@ -468,7 +469,6 @@ Return ONLY valid JSON:
             </div>
           ))}
           
-          {/* Floating Status Indicator */}
           {statusMessage && (
             <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-green-100 border border-green-300 text-green-800 font-bold px-4 py-2 rounded-full text-sm shadow-lg animate-bounce z-20">
               {statusMessage}
@@ -482,29 +482,41 @@ Return ONLY valid JSON:
           <div ref={chatEndRef} />
         </div>
 
-        <div className="bg-white p-4 border-t border-orange-100 flex flex-col gap-2">
-          <div className="flex justify-between px-2">
-             <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Type English (+2 XP) or Hinglish (+10 XP)</span>
-             <span className="text-[10px] font-bold text-orange-500 uppercase tracking-wider">🎙️ Speak Hinglish (+20 XP)</span>
+        <div className="bg-white border-t border-orange-100 flex flex-col">
+          
+          {/* NEW: Sentence Blueprint Area */}
+          <div className="bg-orange-50 px-4 py-3 border-b border-orange-100 flex gap-3 items-center">
+             <span className="text-xl">💡</span>
+             <div>
+                <p className="text-[10px] font-bold text-orange-600 uppercase tracking-wider mb-0.5">Sentence Blueprint</p>
+                <p className="text-sm font-medium text-orange-900 italic">{scenarios[scenario].grammarTemplate}</p>
+             </div>
           </div>
-          <div className="flex gap-2">
-            {recognitionRef.current && (
-              <button onClick={toggleListen} className={`p-4 rounded-xl font-bold transition-all shrink-0 ${isListening ? 'bg-red-500 text-white shadow-lg scale-105 animate-pulse' : 'bg-orange-100 text-orange-600 hover:bg-orange-200'}`} title="Speak for Max XP!">
-                {isListening ? '🛑' : '🎤'}
+
+          <div className="p-4 flex flex-col gap-2">
+            <div className="flex justify-between px-2">
+               <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Type English (+2 XP) or Hinglish (+10 XP)</span>
+               <span className="text-[10px] font-bold text-orange-500 uppercase tracking-wider">🎙️ Speak Hinglish (+20 XP)</span>
+            </div>
+            <div className="flex gap-2">
+              {recognitionRef.current && (
+                <button onClick={toggleListen} className={`p-4 rounded-xl font-bold transition-all shrink-0 ${isListening ? 'bg-red-500 text-white shadow-lg scale-105 animate-pulse' : 'bg-orange-100 text-orange-600 hover:bg-orange-200'}`} title="Speak for Max XP!">
+                  {isListening ? '🛑' : '🎤'}
+                </button>
+              )}
+              <input 
+                type="text" 
+                value={inputText}
+                onChange={(e: ChangeEvent<HTMLInputElement>) => setInputText(e.target.value)}
+                placeholder={isListening ? "Listening for bonus XP..." : "Fill in the blueprint..."}
+                className="flex-1 px-4 py-3 rounded-xl border-2 border-gray-200 focus:outline-none focus:border-orange-500 font-medium transition-colors"
+                onKeyDown={(e: KeyboardEvent<HTMLInputElement>) => e.key === 'Enter' && !isLoading && handleSend()}
+                disabled={isLoading || isListening}
+              />
+              <button onClick={handleSend} disabled={isLoading} className="bg-orange-600 hover:bg-orange-700 disabled:bg-orange-300 text-white px-6 py-3 rounded-xl font-black transition-colors shadow-md">
+                Send
               </button>
-            )}
-            <input 
-              type="text" 
-              value={inputText}
-              onChange={(e: ChangeEvent<HTMLInputElement>) => setInputText(e.target.value)}
-              placeholder={isListening ? "Listening for bonus XP..." : "Use the Target Vocab words!"}
-              className="flex-1 px-4 py-3 rounded-xl border-2 border-gray-200 focus:outline-none focus:border-orange-500 font-medium transition-colors"
-              onKeyDown={(e: KeyboardEvent<HTMLInputElement>) => e.key === 'Enter' && !isLoading && handleSend()}
-              disabled={isLoading || isListening}
-            />
-            <button onClick={handleSend} disabled={isLoading} className="bg-orange-600 hover:bg-orange-700 disabled:bg-orange-300 text-white px-6 py-3 rounded-xl font-black transition-colors shadow-md">
-              Send
-            </button>
+            </div>
           </div>
         </div>
 

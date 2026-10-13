@@ -21,6 +21,12 @@ interface VaultItem {
   english: string;
 }
 
+interface VocabWord {
+  hinglish: string;
+  english: string;
+  devanagari: string;
+}
+
 export default function App() {
   const [apiKey, setApiKey] = useState('');
   const [isKeySet, setIsKeySet] = useState(false);
@@ -30,11 +36,10 @@ export default function App() {
   const [isListening, setIsListening] = useState(false);
   const [autoSpeak, setAutoSpeak] = useState(false);
   
-  // Gamification State
   const [xp, setXp] = useState(0);
   const [vault, setVault] = useState<VaultItem[]>([]);
   const [isVaultOpen, setIsVaultOpen] = useState(false);
-  const [practiceStatus, setPracticeStatus] = useState<string | null>(null);
+  const [statusMessage, setStatusMessage] = useState<string | null>(null);
 
   const [scenario, setScenario] = useState('Grandparents');
   const chatEndRef = useRef<HTMLDivElement>(null);
@@ -42,23 +47,32 @@ export default function App() {
   const practiceRecRef = useRef<any>(null);
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
 
-  const scenarios: Record<string, { title: string, mission: string, greetings: string[], prompt: string }> = {
+  // NEW: Contextual missions with a Target Vocabulary list to actively teach words
+  const scenarios: Record<string, { title: string, mission: string, vocab: VocabWord[], greetings: string[], prompt: string }> = {
     Grandparents: {
       title: 'Dada/Dadi 👵🏽👴🏽',
-      mission: 'Ask if you can go to your friend\'s house this weekend.',
+      mission: 'Tell them about your robotics team and how hard you are working on a project.',
+      vocab: [
+        { hinglish: 'Mehnat', english: 'Hard work', devanagari: 'मेहनत' },
+        { hinglish: 'Banana', english: 'To build/make', devanagari: 'बनाना' },
+        { hinglish: 'Koshish', english: 'Attempt/Effort', devanagari: 'कोशिश' }
+      ],
       greetings: [
         'बेटा, आज का दिन कैसा था? | Beta, aaj ka din kaisa tha? | (How was your day today?)',
-        'खाना खा लिया तुमने? | Khaana khaa liya tumne? | (Did you eat your food?)',
         'सुना है तुम रोबोटिक्स में बहुत अच्छा कर रही हो! | Suna hai tum robotics mein bahut achcha kar rahi ho! | (I heard you are doing very well in robotics!)'
       ],
-      prompt: 'You are a loving Indian grandparent talking to your American teen grandchild. Keep replies to 1-2 friendly, warm sentences. Focus on affection (using terms like Beta). Do NOT use religious greetings.'
+      prompt: 'You are a loving Indian grandparent talking to your teen grandchild. Keep replies to 1-2 friendly, warm sentences. Focus on affection (using terms like Beta). Do NOT use religious greetings.'
     },
     Cousin: {
       title: 'Cousin in Delhi 📱',
-      mission: 'Convince your cousin to order pizza instead of eating dal.',
+      mission: 'Complain about how much homework you have and ask what shows they are watching.',
+      vocab: [
+        { hinglish: 'Pakaau', english: 'Boring', devanagari: 'पकाऊ' },
+        { hinglish: 'Zabardast', english: 'Awesome', devanagari: 'ज़बरदस्त' },
+        { hinglish: 'Magajmari', english: 'Headache/Hassle', devanagari: 'मगजमारी' }
+      ],
       greetings: [
         'और बता, क्या चल रहा है आज कल? | Aur bata, kya chal raha hai aaj kal? | (Tell me, what is up these days?)',
-        'सलाम यार, क्या सीन है आज का? | Salaam yaar, kya scene hai aaj ka? | (Peace buddy, what\'s the plan for today?)',
         'कोई नई फनी रील देखी? | Koi nayi funny reel dekhi? | (Did you see any new funny reel?)'
       ],
       prompt: 'You are a cool, 20-something cousin living in Delhi chatting on WhatsApp with your American cousin. Keep it casual and conversational, 1-2 sentences.'
@@ -66,10 +80,14 @@ export default function App() {
     Shopkeeper: {
       title: 'Street Vendor 🛒',
       mission: 'Negotiate the price of a blue dupatta down by 50 rupees.',
+      vocab: [
+        { hinglish: 'Mehenga', english: 'Expensive', devanagari: 'महंगा' },
+        { hinglish: 'Sahi daam', english: 'Right/Fair price', devanagari: 'सही दाम' },
+        { hinglish: 'Kam karna', english: 'To reduce', devanagari: 'कम करना' }
+      ],
       greetings: [
         'आइए आइए! बोलिए क्या चाहिए आपको? | Aaiye aaiye! Boliye kya chahiye aapko? | (Come in! Tell me, what do you need?)',
-        'अस्सलाम वालेकुम जी, बताइए। | Assalamualaikum ji, bataiye. | (Peace be upon you, tell me.)',
-        'आदाब! आज क्या दिखाऊँ आपको? | Adaab! Aaj kya dikhaun aapko? | (Greetings! What should I show you today?)'
+        'अस्सलाम वालेकुम जी, बताइए। | Assalamualaikum ji, bataiye. | (Peace be upon you, tell me.)'
       ],
       prompt: 'You are a busy but polite street vendor or shopkeeper in North India chatting with a young customer. Keep it to 1-2 sentences.'
     }
@@ -117,7 +135,7 @@ export default function App() {
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, practiceStatus]);
+  }, [messages, statusMessage]);
 
   const saveKey = () => {
     if (apiKey.trim().length > 10) {
@@ -175,27 +193,29 @@ export default function App() {
     if (!vault.find(v => v.hinglish === hinglish)) {
       setVault([...vault, { hinglish, english }]);
       setXp(prev => prev + 15); 
+      setStatusMessage('Saved to Vault! +15 XP');
+      setTimeout(() => setStatusMessage(null), 3000);
     }
   };
 
   const practicePronunciation = (targetHinglish: string) => {
-    setPracticeStatus(`Listening... say "${targetHinglish}"`);
+    setStatusMessage(`Listening... say "${targetHinglish}"`);
     
     practiceRecRef.current.onresult = (event: any) => {
       const spoken = event.results[0][0].transcript.toLowerCase();
       if (spoken.length > 2) {
-        setPracticeStatus(`Nailed it! +30 XP`);
+        setStatusMessage(`Nailed it! +30 XP`);
         setXp(prev => prev + 30);
-        setTimeout(() => setPracticeStatus(null), 3000);
+        setTimeout(() => setStatusMessage(null), 3000);
       } else {
-        setPracticeStatus(`Try again!`);
-        setTimeout(() => setPracticeStatus(null), 3000);
+        setStatusMessage(`Try again!`);
+        setTimeout(() => setStatusMessage(null), 3000);
       }
     };
     
     practiceRecRef.current.onerror = () => {
-      setPracticeStatus('Could not hear you well enough.');
-      setTimeout(() => setPracticeStatus(null), 3000);
+      setStatusMessage('Could not hear you well enough.');
+      setTimeout(() => setStatusMessage(null), 3000);
     };
 
     practiceRecRef.current.start();
@@ -204,10 +224,22 @@ export default function App() {
   const generateAIResponse = async (userText: string, usedVoice: boolean) => {
     setIsLoading(true);
     
-    const isEnglish = /^[a-zA-Z\s.,?!'"]+$/.test(userText) && userText.split(' ').length > 2;
-    if (usedVoice) setXp(prev => prev + 20); 
-    else if (!isEnglish) setXp(prev => prev + 10); 
-    else setXp(prev => prev + 2); 
+    // Check if she used the target vocabulary in her message
+    const currentVocab = scenarios[scenario].vocab;
+    const lowerUserText = userText.toLowerCase();
+    const wordsUsed = currentVocab.filter(v => lowerUserText.includes(v.hinglish.toLowerCase()));
+    
+    let bonusXp = 0;
+    if (wordsUsed.length > 0) {
+      bonusXp = wordsUsed.length * 50; // 50 XP per vocab word used
+      setStatusMessage(`Vocab Bonus! +${bonusXp} XP 🔥`);
+      setTimeout(() => setStatusMessage(null), 4000);
+    }
+    
+    const isEnglish = /^[a-zA-Z\s.,?!'"]+$/.test(userText) && userText.split(' ').length > 2 && wordsUsed.length === 0;
+    if (usedVoice) setXp(prev => prev + 20 + bonusXp); 
+    else if (!isEnglish) setXp(prev => prev + 10 + bonusXp); 
+    else setXp(prev => prev + 2 + bonusXp); 
     
     const personaPrompt = scenarios[scenario].prompt;
     const currentScenarioName = scenarios[scenario].title;
@@ -223,16 +255,15 @@ Task 1: USER TRANSLATION
 Translate the user's input into natural, everyday spoken Hinglish. 
 CRITICAL: Adjust pronouns and verbs based on the Scenario (Grandparents = Aap, Cousin = Tum/Tu, Shopkeeper = Aap/Bhaiya).
 
-Task 2: PERSONA REPLY & FILL-IN-THE-BLANK
-Respond in character. 
-GAMIFICATION RULE: Occasionally (about 30% of the time), challenge the user by leaving a key noun or verb completely blank using "____" in your replyHinglish and replyDevanagari. 
+Task 2: PERSONA REPLY
+Respond in character. Ensure the reply keeps the conversation flowing based on the active mission.
 
 Return ONLY valid JSON:
 {
   "userHinglish": "Natural Hinglish version of user input",
   "userDevanagari": "देवनागरी script of the natural user input",
-  "replyDevanagari": "देवनागरी script of reply (with ____ if challenging)",
-  "replyHinglish": "Hinglish transliteration of reply (with ____ if challenging)",
+  "replyDevanagari": "देवनागरी script of reply",
+  "replyHinglish": "Hinglish transliteration of reply",
   "replyEnglish": "English translation of reply"
 }
 `;
@@ -378,16 +409,31 @@ Return ONLY valid JSON:
             </label>
           </div>
 
-          <div className="mt-3 bg-blue-50 border border-blue-200 rounded-xl p-3 flex items-center gap-3">
-            <span className="text-xl">🎯</span>
-            <div>
-              <p className="text-[10px] font-black text-blue-500 uppercase tracking-wider">Active Mission</p>
-              <p className="text-sm font-bold text-blue-900">{scenarios[scenario].mission}</p>
+          <div className="mt-3 bg-blue-50 border border-blue-200 rounded-xl p-3">
+            <div className="flex items-start gap-3 mb-3">
+              <span className="text-xl">🎯</span>
+              <div>
+                <p className="text-[10px] font-black text-blue-500 uppercase tracking-wider">Active Mission</p>
+                <p className="text-sm font-bold text-blue-900">{scenarios[scenario].mission}</p>
+              </div>
+            </div>
+            
+            {/* NEW: Vocabulary Target List */}
+            <div className="border-t border-blue-200/50 pt-2">
+              <p className="text-[10px] font-bold text-blue-500 uppercase mb-1 tracking-wider">Target Vocabulary (+50 XP Each)</p>
+              <div className="flex flex-wrap gap-2">
+                {scenarios[scenario].vocab.map((v, i) => (
+                  <div key={i} className="bg-white px-2 py-1 rounded-md text-xs border border-blue-100 flex items-center shadow-sm">
+                    <span className="font-bold text-blue-800">{v.hinglish}</span>
+                    <span className="text-gray-500 ml-1">({v.english})</span>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         </div>
 
-        <div className="flex-1 bg-gray-50 p-4 overflow-y-auto flex flex-col gap-5">
+        <div className="flex-1 bg-gray-50 p-4 overflow-y-auto flex flex-col gap-5 relative">
           {messages.map((msg, idx) => (
             <div key={idx} className={`max-w-[90%] p-4 rounded-2xl ${msg.sender === 'You' ? 'bg-orange-500 text-white self-end rounded-tr-none' : 'bg-white shadow-sm border border-gray-200 text-gray-800 self-start rounded-tl-none relative group'}`}>
               <div className="flex justify-between items-start gap-4">
@@ -422,9 +468,10 @@ Return ONLY valid JSON:
             </div>
           ))}
           
-          {practiceStatus && (
-            <div className="self-center bg-green-100 border border-green-300 text-green-800 font-bold px-4 py-2 rounded-full text-sm shadow-sm animate-pulse">
-              {practiceStatus}
+          {/* Floating Status Indicator */}
+          {statusMessage && (
+            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-green-100 border border-green-300 text-green-800 font-bold px-4 py-2 rounded-full text-sm shadow-lg animate-bounce z-20">
+              {statusMessage}
             </div>
           )}
           {isLoading && (
@@ -450,7 +497,7 @@ Return ONLY valid JSON:
               type="text" 
               value={inputText}
               onChange={(e: ChangeEvent<HTMLInputElement>) => setInputText(e.target.value)}
-              placeholder={isListening ? "Listening for bonus XP..." : "Complete the mission..."}
+              placeholder={isListening ? "Listening for bonus XP..." : "Use the Target Vocab words!"}
               className="flex-1 px-4 py-3 rounded-xl border-2 border-gray-200 focus:outline-none focus:border-orange-500 font-medium transition-colors"
               onKeyDown={(e: KeyboardEvent<HTMLInputElement>) => e.key === 'Enter' && !isLoading && handleSend()}
               disabled={isLoading || isListening}
